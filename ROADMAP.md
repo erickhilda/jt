@@ -76,27 +76,28 @@ Started implementation. Will push a draft PR today.
 
 ## Development Roadmap
 
-### Phase 0 — Project Setup (Day 1)
+### Phase 0 — Project Setup (Day 1) [DONE]
 
-- [ ] Initialize Go module (`github.com/<you>/jt`)
-- [ ] Set up project structure (see Architecture below)
-- [ ] Choose CLI framework: **cobra** (industry standard, used by `kubectl`, `gh`, `hugo`)
+- [x] Initialize Go module (`github.com/erickhilda/jt`)
+- [x] Set up project structure (see Architecture below)
+- [x] Choose CLI framework: **cobra** (industry standard, used by `kubectl`, `gh`, `hugo`)
 - [ ] Set up CI with goreleaser for cross-platform binaries
 - [ ] Write README with installation instructions
 
-### Phase 1 — Auth & Config (Days 2–3)
+### Phase 1 — Auth & Config (Days 2–3) [DONE]
 
 **Goal:** Connect to Jira Cloud securely.
 
-- [ ] `jt init` — Interactive setup wizard
+- [x] `jt init` — Interactive setup wizard
   - Prompt for Jira instance URL (`https://yourcompany.atlassian.net`)
-  - Prompt for email + API token (guide user to create one)
+  - Prompt for email + API token (masked input via `x/term`)
   - Prompt for default project key (optional)
   - Save config to `~/.jt/config.yaml`
-- [ ] `jt config set <key> <value>` — Update individual settings
-- [ ] `jt config show` — Display current config (mask token)
-- [ ] Store API token securely (system keyring via `go-keyring`, fallback to file)
-- [ ] `jt auth test` — Verify credentials work
+  - Verify credentials via `/rest/api/3/myself`
+- [x] `jt config set <key> <value>` — Update individual settings
+- [x] `jt config show` — Display current config (mask token)
+- [x] Store API token securely (system keyring via `go-keyring`, fallback to `~/.jt/credentials` with 0600 perms)
+- [x] `jt auth test` — Verify credentials work
 
 **Config file (`~/.jt/config.yaml`):**
 
@@ -105,6 +106,7 @@ instance: https://yourcompany.atlassian.net
 email: you@company.com
 default_project: PROJ
 tickets_dir: ~/.jt/tickets    # configurable
+token_storage: keyring         # or "file" if keyring unavailable
 ```
 
 ### Phase 2 — Pull & View (Days 4–7)
@@ -192,27 +194,30 @@ If the user adds a `## My Notes` section at the bottom of the file, `jt pull` sh
 jt/
 ├── cmd/                    # CLI commands (cobra)
 │   ├── root.go
-│   ├── init.go
-│   ├── pull.go
-│   ├── view.go
-│   ├── list.go
-│   ├── search.go
-│   ├── sync.go
-│   ├── mine.go
-│   └── config.go
+│   ├── init.go             # Interactive setup wizard
+│   ├── auth.go             # jt auth test
+│   ├── config.go           # jt config show/set
+│   ├── pull.go             # (Phase 2)
+│   ├── view.go             # (Phase 2)
+│   ├── list.go             # (Phase 3)
+│   ├── search.go           # (Phase 3)
+│   ├── sync.go             # (Phase 4)
+│   └── mine.go             # (Phase 3)
 ├── internal/
 │   ├── config/             # Config loading/saving
-│   │   └── config.go
+│   │   ├── config.go       # Config struct, Load/Save/Validate
+│   │   └── credentials.go  # Token storage (keyring + file fallback)
 │   ├── jira/               # Jira API client
-│   │   ├── client.go       # HTTP client, auth
+│   │   ├── client.go       # HTTP client, Basic auth
 │   │   ├── types.go        # API response types
-│   │   └── adf.go          # ADF → Markdown converter
+│   │   ├── errors.go       # APIError, ErrUnauthorized
+│   │   └── adf.go          # ADF → Markdown converter (Phase 2)
 │   ├── renderer/           # Ticket → Markdown renderer
-│   │   └── markdown.go
+│   │   └── markdown.go     # (Phase 2)
 │   ├── store/              # Local file management
-│   │   └── store.go        # Read/write/list local tickets
+│   │   └── store.go        # Read/write/list local tickets (Phase 2)
 │   └── tui/                # Terminal UI helpers
-│       └── output.go       # Colors, tables, TTY detection
+│       └── output.go       # Colors, tables, TTY detection (Phase 5)
 ├── go.mod
 ├── go.sum
 ├── main.go
@@ -224,14 +229,14 @@ jt/
 
 ## Key Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| `github.com/spf13/cobra` | CLI framework |
-| `github.com/spf13/viper` | Config management |
-| `github.com/zalando/go-keyring` | Secure token storage |
-| `github.com/charmbracelet/lipgloss` | Terminal styling |
-| `github.com/charmbracelet/glamour` | Markdown rendering in terminal |
-| `github.com/fatih/color` | Colored output |
+| Package | Purpose | Status |
+|---------|---------|--------|
+| `github.com/spf13/cobra` | CLI framework | In use |
+| `gopkg.in/yaml.v3` | Config marshal/unmarshal | In use |
+| `github.com/zalando/go-keyring` | Secure token storage | In use |
+| `golang.org/x/term` | Password masking | In use |
+| `github.com/charmbracelet/lipgloss` | Terminal styling | Phase 5 |
+| `github.com/charmbracelet/glamour` | Markdown rendering in terminal | Phase 5 |
 
 ---
 
