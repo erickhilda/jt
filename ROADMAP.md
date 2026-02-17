@@ -109,26 +109,26 @@ tickets_dir: ~/.jt/tickets    # configurable
 token_storage: keyring         # or "file" if keyring unavailable
 ```
 
-### Phase 2 — Pull & View (Days 4–7)
+### Phase 2 — Pull & View (Days 4–7) [DONE]
 
 **Goal:** Fetch tickets and save as local markdown.
 
-- [ ] `jt pull <TICKET-KEY>` — Fetch ticket from Jira REST API v3, render to markdown, save to `tickets_dir`
+- [x] `jt pull <TICKET-KEY>` — Fetch ticket from Jira REST API v3, render to markdown, save to `tickets_dir`
   - Fetches: summary, description, status, assignee, reporter, priority, type, labels, sprint, epic, comments, subtasks, linked issues
   - Converts Jira's ADF (Atlassian Document Format) to markdown
   - Saves as `<TICKET-KEY>.md`
   - If file exists, overwrites with fresh content (preserves any local `## Notes` section — see below)
-- [ ] `jt pull <TICKET-KEY> --comments-only` — Only update the comments section
-- [ ] `jt pull <TICKET-KEY> --dry-run` — Show diff of what would change
-- [ ] `jt view <TICKET-KEY>` — Print local markdown to stdout (for piping)
-- [ ] `jt open <TICKET-KEY>` — Open ticket in default browser
-- [ ] `jt path <TICKET-KEY>` — Print the file path (useful for scripts: `claude < $(jt path PROJ-123)`)
-- [ ] Handle ADF → Markdown conversion:
+- [x] `jt pull <TICKET-KEY> --comments-only` — Only update the comments section
+- [x] `jt pull <TICKET-KEY> --dry-run` — Show diff of what would change
+- [x] `jt view <TICKET-KEY>` — Print local markdown to stdout (for piping)
+- [x] `jt open <TICKET-KEY>` — Open ticket in default browser
+- [x] `jt path <TICKET-KEY>` — Print the file path (useful for scripts: `claude < $(jt path PROJ-123)`)
+- [x] Handle ADF → Markdown conversion:
   - Headings, paragraphs, lists (ordered/unordered)
   - Code blocks (with language)
   - Tables
   - Mentions (@user)
-  - Links, images (download inline images to `~/.jt/attachments/`)
+  - Links, images (download inline images to `~/.jt/attachments/`) — **partial: media nodes handled gracefully but inline download not yet implemented**
   - Panels (info/warning/error → blockquotes with prefix)
 
 **Local notes preservation:**
