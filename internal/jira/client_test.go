@@ -26,7 +26,7 @@ func TestMyselfSuccess(t *testing.T) {
 			t.Errorf("unexpected method: %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(want)
+		_ = json.NewEncoder(w).Encode(want)
 	}))
 	defer srv.Close()
 
@@ -66,7 +66,7 @@ func TestMyselfUnauthorized(t *testing.T) {
 func TestMyselfServerError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		_, _ = w.Write([]byte("internal error"))
 	}))
 	defer srv.Close()
 
@@ -97,12 +97,12 @@ func TestAuthHeader(t *testing.T) {
 			t.Errorf("Authorization = %q, want %q", got, want)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(User{})
+		_ = json.NewEncoder(w).Encode(User{})
 	}))
 	defer srv.Close()
 
 	client := NewClient(srv.URL, email, token)
-	client.Myself()
+	_, _ = client.Myself()
 }
 
 func TestMyselfForbidden(t *testing.T) {
@@ -186,7 +186,7 @@ func TestGetIssueSuccess(t *testing.T) {
 			t.Errorf("expected expand=names query param, got: %s", r.URL.RawQuery)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(issueJSON))
+		_, _ = w.Write([]byte(issueJSON))
 	}))
 	defer srv.Close()
 
@@ -240,7 +240,7 @@ func TestGetIssueSuccess(t *testing.T) {
 func TestGetIssueCustomFields(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(issueJSON))
+		_, _ = w.Write([]byte(issueJSON))
 	}))
 	defer srv.Close()
 

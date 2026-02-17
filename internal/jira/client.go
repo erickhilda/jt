@@ -37,7 +37,7 @@ func (c *Client) Myself() (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 		return nil, ErrUnauthorized
@@ -64,7 +64,7 @@ func (c *Client) GetIssue(key string) (*Issue, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	switch resp.StatusCode {
 	case http.StatusUnauthorized, http.StatusForbidden:
