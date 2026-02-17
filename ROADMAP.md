@@ -81,7 +81,7 @@ Started implementation. Will push a draft PR today.
 - [x] Initialize Go module (`github.com/erickhilda/jt`)
 - [x] Set up project structure (see Architecture below)
 - [x] Choose CLI framework: **cobra** (industry standard, used by `kubectl`, `gh`, `hugo`)
-- [ ] Set up CI with goreleaser for cross-platform binaries
+- [x] Set up CI with goreleaser for cross-platform binaries
 - [ ] Write README with installation instructions
 
 ### Phase 1 — Auth & Config (Days 2–3) [DONE]

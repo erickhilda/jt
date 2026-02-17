@@ -13,18 +13,22 @@ A lightweight CLI to pull Jira Cloud tickets into local markdown files.
 
 ## Installation
 
+### Homebrew (macOS/Linux)
+
+```bash
+brew install erickhilda/tap/jt
+```
+
+### Binary download
+
+Download a prebuilt binary from the [GitHub Releases](https://github.com/erickhilda/jt/releases) page.
+
 ### From source
 
 ```bash
 git clone https://github.com/erickhilda/jt.git
 cd jt
 make install
-```
-
-### Build only
-
-```bash
-make build    # produces ./jt binary
 ```
 
 Requires Go 1.25+.
