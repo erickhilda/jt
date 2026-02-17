@@ -1,0 +1,198 @@
+# jt -- Jira Ticket CLI
+
+A lightweight CLI to pull Jira Cloud tickets into local markdown files.
+
+## Features
+
+- Interactive setup with secure token storage (system keyring or encrypted file)
+- Fetch Jira tickets as markdown with full ADF-to-markdown conversion
+- Preserves a local "My Notes" section across re-pulls
+- Dry-run and comments-only update modes
+- Open tickets in your browser directly from the terminal
+- Print file paths for easy piping to other tools
+
+## Installation
+
+### From source
+
+```bash
+git clone https://github.com/erickhilda/jt.git
+cd jt
+make install
+```
+
+### Build only
+
+```bash
+make build    # produces ./jt binary
+```
+
+Requires Go 1.25+.
+
+## Quick Start
+
+```bash
+# 1. Configure your Jira instance, email, and API token
+jt init
+
+# 2. Pull a ticket to local markdown
+jt pull PROJ-123
+
+# 3. View it
+jt view PROJ-123
+
+# 4. Open in browser
+jt open PROJ-123
+```
+
+## Creating a Jira API Token
+
+jt authenticates using Jira Cloud API tokens (not your account password). To create one:
+
+1. Log in to <https://id.atlassian.com/manage-profile/security/api-tokens>
+2. Click **Create API token**
+3. Give it a label (e.g. "jt CLI") and click **Create**
+4. Copy the token -- you won't be able to see it again
+
+Paste the token when `jt init` prompts for it. The token inherits the permissions of your Atlassian account.
+
+If you need to rotate a token later, create a new one in the same page and update jt:
+
+```bash
+jt config set token <new-token>
+```
+
+## Commands
+
+### `jt init`
+
+Interactive setup wizard. Prompts for your Jira instance URL, email, API token, and default project key. Tests credentials before saving.
+
+### `jt auth test`
+
+Verify stored credentials against the Jira API. Prints your display name, email, account ID, and timezone on success.
+
+### `jt config show`
+
+Display all configuration settings (token is masked).
+
+### `jt config set <key> <value>`
+
+Update a single configuration value.
+
+Valid keys: `instance`, `email`, `default_project`, `tickets_dir`, `token`.
+
+```bash
+jt config set instance https://myorg.atlassian.net
+jt config set default_project PROJ
+```
+
+### `jt pull <TICKET-KEY>`
+
+Fetch a Jira ticket and save it as local markdown.
+
+| Flag | Description |
+|------|-------------|
+| `--comments-only` | Only update the comments section |
+| `--dry-run` | Show a diff of what would change without saving |
+
+The pull command preserves any content you've written under the `## My Notes` section.
+
+### `jt view <TICKET-KEY>`
+
+Print the local ticket markdown to stdout. Useful for piping:
+
+```bash
+jt view PROJ-123 | less
+```
+
+### `jt open <TICKET-KEY>`
+
+Open the ticket in your default browser.
+
+### `jt path <TICKET-KEY>`
+
+Print the absolute filesystem path to a ticket's markdown file. Useful for scripting:
+
+```bash
+cat "$(jt path PROJ-123)"
+```
+
+## Configuration
+
+Configuration is stored in `~/.jt/config.yaml`:
+
+```yaml
+instance: https://yourcompany.atlassian.net
+email: you@company.com
+default_project: PROJ
+tickets_dir: ~/.jt/tickets
+token_storage: keyring
+```
+
+| Key | Description |
+|-----|-------------|
+| `instance` | Jira Cloud base URL (must start with `https://`) |
+| `email` | Jira account email |
+| `default_project` | Default project key (optional) |
+| `tickets_dir` | Directory for saved tickets (default: `~/.jt/tickets`) |
+| `token_storage` | `keyring` (system keyring) or `file` (`~/.jt/credentials`, 0600) |
+
+API tokens are stored in your system keyring when available, with an automatic fallback to an encrypted credentials file.
+
+## Local File Format
+
+Pulled tickets are saved as `~/.jt/tickets/<KEY>.md`:
+
+```markdown
+<!-- jt:meta ticket=PROJ-123 fetched=2026-02-14T10:30:00Z -->
+# PROJ-123: Implement OAuth2 flow
+
+| Field       | Value              |
+|-------------|--------------------|
+| Status      | In Progress        |
+| Type        | Story              |
+| Priority    | High               |
+| Assignee    | you@company.com    |
+| Reporter    | pm@company.com     |
+| Labels      | backend, security  |
+| Created     | 2026-02-01         |
+| Updated     | 2026-02-13         |
+
+## Description
+
+The ticket description converted from Atlassian Document Format to markdown.
+
+## Subtasks
+
+- [x] PROJ-124: Research OAuth2 libraries (Done)
+- [ ] PROJ-125: Implement token storage (In Progress)
+
+## Linked Issues
+
+- blocks PROJ-130: Protected API endpoints
+
+## Comments (2)
+
+### Alice -- 2026-02-10
+
+We should use PKCE for the mobile app flow.
+
+## My Notes
+
+Your local notes are preserved across re-pulls.
+```
+
+## Development
+
+```bash
+make build     # build the binary
+make install   # install to $GOPATH/bin
+make test      # run all tests
+make lint      # run golangci-lint
+make clean     # remove built binary
+```
+
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for planned features including search, sync, shell completions, and more.
