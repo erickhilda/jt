@@ -13,6 +13,18 @@ A lightweight CLI to pull Jira Cloud tickets into local markdown files.
 
 ## Installation
 
+### Shell installer (macOS/Linux)
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/erickhilda/jt/master/install.sh | sh
+```
+
+To install to a custom directory or pin a version:
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/erickhilda/jt/master/install.sh | sh -s -- -d ~/.local/bin -v v0.1.0
+```
+
 ### Homebrew (macOS/Linux)
 
 ```bash
