@@ -1,7 +1,7 @@
 BINARY_NAME=jt
 VERSION?=dev
 
-.PHONY: build install test lint clean
+.PHONY: build install test lint clean setup
 
 build:
 	go build -ldflags "-X github.com/erickhilda/jt/cmd.version=$(VERSION)" -o $(BINARY_NAME) .
@@ -17,3 +17,6 @@ lint:
 
 clean:
 	rm -f $(BINARY_NAME)
+
+setup:
+	git config core.hooksPath .githooks

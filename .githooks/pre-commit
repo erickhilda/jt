@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+echo "Running tests..."
+go test ./...
+
+echo "Running linter..."
+golangci-lint run ./...
+
+echo "All checks passed."

@@ -268,7 +268,7 @@ func TestGetIssueCustomFields(t *testing.T) {
 func TestGetIssueNotFound(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"errorMessages":["Issue does not exist"]}`))
+		_, _ = w.Write([]byte(`{"errorMessages":["Issue does not exist"]}`))
 	}))
 	defer srv.Close()
 
@@ -308,7 +308,7 @@ func TestGetIssueForbidden(t *testing.T) {
 func TestGetIssueServerError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("server error"))
+		_, _ = w.Write([]byte("server error"))
 	}))
 	defer srv.Close()
 
