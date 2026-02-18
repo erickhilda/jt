@@ -187,84 +187,108 @@ func parseEpic(raw json.RawMessage) *Epic {
 	return nil
 }
 
-// SearchIssues performs a JQL search and returns matching issues.
+// SearchIssues performs a JQL search using the /rest/api/3/search/jql endpoint
+// and returns all matching issues (handling pagination automatically).
 // The fields parameter controls which fields are returned; pass nil for defaults.
 func (c *Client) SearchIssues(jql string, fields []string) (*SearchResult, error) {
-	params := url.Values{}
-	params.Set("jql", jql)
-	params.Set("expand", "names")
-	if len(fields) > 0 {
-		params.Set("fields", strings.Join(fields, ","))
-	}
+	result := &SearchResult{}
+	var nextPageToken string
 
-	resp, err := c.do(http.MethodGet, "/rest/api/3/search?"+params.Encode(), nil)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	switch resp.StatusCode {
-	case http.StatusUnauthorized, http.StatusForbidden:
-		return nil, ErrUnauthorized
-	}
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, &APIError{
-			StatusCode: resp.StatusCode,
-			Message:    string(body),
+	for {
+		params := url.Values{}
+		params.Set("jql", jql)
+		params.Set("expand", "names")
+		if len(fields) > 0 {
+			params.Set("fields", strings.Join(fields, ","))
 		}
-	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading search response: %w", err)
-	}
-
-	// Decode the outer search envelope with issues as raw JSON.
-	var envelope struct {
-		StartAt    int               `json:"startAt"`
-		MaxResults int               `json:"maxResults"`
-		Total      int               `json:"total"`
-		Issues     []json.RawMessage `json:"issues"`
-		Names      map[string]string `json:"names"`
-	}
-	if err := json.Unmarshal(data, &envelope); err != nil {
-		return nil, fmt.Errorf("decoding search response: %w", err)
-	}
-
-	result := &SearchResult{
-		StartAt:    envelope.StartAt,
-		MaxResults: envelope.MaxResults,
-		Total:      envelope.Total,
-	}
-
-	// Two-pass decode each issue, reusing the top-level names map.
-	for _, rawIssue := range envelope.Issues {
-		var raw IssueRaw
-		if err := json.Unmarshal(rawIssue, &raw); err != nil {
-			return nil, fmt.Errorf("decoding issue (raw): %w", err)
+		if nextPageToken != "" {
+			params.Set("nextPageToken", nextPageToken)
 		}
 
-		var fields IssueFields
-		if err := json.Unmarshal(raw.Fields, &fields); err != nil {
-			return nil, fmt.Errorf("decoding issue fields: %w", err)
+		resp, err := c.do(http.MethodGet, "/rest/api/3/search/jql?"+params.Encode(), nil)
+		if err != nil {
+			return nil, err
 		}
 
-		issue := Issue{
-			Key:    raw.Key,
-			Fields: fields,
+		data, statusCode, err := readAndClose(resp)
+		if err != nil {
+			return nil, err
 		}
 
-		// Use per-issue names if available, fall back to top-level.
-		names := raw.Names
-		if len(names) == 0 {
-			names = envelope.Names
+		switch statusCode {
+		case http.StatusUnauthorized, http.StatusForbidden:
+			return nil, ErrUnauthorized
 		}
-		extractCustomFields(&issue, raw.Fields, names)
-		result.Issues = append(result.Issues, issue)
+		if statusCode != http.StatusOK {
+			return nil, &APIError{
+				StatusCode: statusCode,
+				Message:    string(data),
+			}
+		}
+
+		// Decode the search response page.
+		var page struct {
+			Issues        []json.RawMessage `json:"issues"`
+			Names         map[string]string `json:"names"`
+			NextPageToken string            `json:"nextPageToken"`
+			IsLast        bool              `json:"isLast"`
+		}
+		if err := json.Unmarshal(data, &page); err != nil {
+			return nil, fmt.Errorf("decoding search response: %w", err)
+		}
+
+		// Two-pass decode each issue, reusing the top-level names map.
+		for _, rawIssue := range page.Issues {
+			issue, err := decodeIssue(rawIssue, page.Names)
+			if err != nil {
+				return nil, err
+			}
+			result.Issues = append(result.Issues, *issue)
+		}
+
+		if page.IsLast || page.NextPageToken == "" {
+			result.IsLast = true
+			break
+		}
+		nextPageToken = page.NextPageToken
 	}
 
 	return result, nil
+}
+
+// decodeIssue performs the two-pass JSON decode for a single issue.
+func decodeIssue(rawIssue json.RawMessage, fallbackNames map[string]string) (*Issue, error) {
+	var raw IssueRaw
+	if err := json.Unmarshal(rawIssue, &raw); err != nil {
+		return nil, fmt.Errorf("decoding issue (raw): %w", err)
+	}
+
+	var fields IssueFields
+	if err := json.Unmarshal(raw.Fields, &fields); err != nil {
+		return nil, fmt.Errorf("decoding issue fields: %w", err)
+	}
+
+	issue := &Issue{
+		Key:    raw.Key,
+		Fields: fields,
+	}
+
+	names := raw.Names
+	if len(names) == 0 {
+		names = fallbackNames
+	}
+	extractCustomFields(issue, raw.Fields, names)
+	return issue, nil
+}
+
+// readAndClose reads the full body and closes it, returning data and status code.
+func readAndClose(resp *http.Response) ([]byte, int, error) {
+	defer func() { _ = resp.Body.Close() }()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp.StatusCode, fmt.Errorf("reading response body: %w", err)
+	}
+	return data, resp.StatusCode, nil
 }
 
 func (c *Client) do(method, path string, body io.Reader) (*http.Response, error) {

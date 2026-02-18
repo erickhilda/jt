@@ -326,11 +326,8 @@ func TestGetIssueServerError(t *testing.T) {
 	}
 }
 
-// searchJSON is a JQL search response fixture.
+// searchJSON is a JQL search response fixture for /rest/api/3/search/jql.
 const searchJSON = `{
-  "startAt": 0,
-  "maxResults": 50,
-  "total": 1,
   "names": {
     "summary": "Summary",
     "status": "Status",
@@ -349,12 +346,13 @@ const searchJSON = `{
         "customfield_10020": [{"name": "Sprint 14"}]
       }
     }
-  ]
+  ],
+  "isLast": true
 }`
 
 func TestSearchIssuesSuccess(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/rest/api/3/search" {
+		if r.URL.Path != "/rest/api/3/search/jql" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		if r.URL.Query().Get("jql") == "" {
@@ -373,8 +371,8 @@ func TestSearchIssuesSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SearchIssues: %v", err)
 	}
-	if result.Total != 1 {
-		t.Errorf("Total = %d, want 1", result.Total)
+	if !result.IsLast {
+		t.Error("expected IsLast=true")
 	}
 	if len(result.Issues) != 1 {
 		t.Fatalf("Issues count = %d, want 1", len(result.Issues))
@@ -390,7 +388,7 @@ func TestSearchIssuesSuccess(t *testing.T) {
 func TestSearchIssuesEmpty(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"startAt":0,"maxResults":50,"total":0,"issues":[]}`))
+		_, _ = w.Write([]byte(`{"issues":[],"isLast":true}`))
 	}))
 	defer srv.Close()
 
@@ -399,11 +397,55 @@ func TestSearchIssuesEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SearchIssues: %v", err)
 	}
-	if result.Total != 0 {
-		t.Errorf("Total = %d, want 0", result.Total)
-	}
 	if len(result.Issues) != 0 {
 		t.Errorf("Issues count = %d, want 0", len(result.Issues))
+	}
+}
+
+func TestSearchIssuesPagination(t *testing.T) {
+	callCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		w.Header().Set("Content-Type", "application/json")
+		if callCount == 1 {
+			// First page: return one issue with nextPageToken.
+			if r.URL.Query().Get("nextPageToken") != "" {
+				t.Error("first request should not have nextPageToken")
+			}
+			_, _ = w.Write([]byte(`{
+				"issues": [{"key": "PROJ-1", "fields": {"summary": "First"}}],
+				"nextPageToken": "page2token",
+				"isLast": false
+			}`))
+		} else {
+			// Second page: return one issue, last page.
+			if r.URL.Query().Get("nextPageToken") != "page2token" {
+				t.Errorf("expected nextPageToken=page2token, got: %s", r.URL.Query().Get("nextPageToken"))
+			}
+			_, _ = w.Write([]byte(`{
+				"issues": [{"key": "PROJ-2", "fields": {"summary": "Second"}}],
+				"isLast": true
+			}`))
+		}
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test@example.com", "token123")
+	result, err := client.SearchIssues("project = PROJ", nil)
+	if err != nil {
+		t.Fatalf("SearchIssues: %v", err)
+	}
+	if callCount != 2 {
+		t.Errorf("expected 2 API calls, got %d", callCount)
+	}
+	if len(result.Issues) != 2 {
+		t.Fatalf("Issues count = %d, want 2", len(result.Issues))
+	}
+	if result.Issues[0].Key != "PROJ-1" {
+		t.Errorf("Issues[0].Key = %q, want PROJ-1", result.Issues[0].Key)
+	}
+	if result.Issues[1].Key != "PROJ-2" {
+		t.Errorf("Issues[1].Key = %q, want PROJ-2", result.Issues[1].Key)
 	}
 }
 
