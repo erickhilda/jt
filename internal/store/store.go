@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+	"time"
 )
 
 // Save writes ticket content to <ticketsDir>/<key>.md, creating the
@@ -105,6 +107,97 @@ func findNextH2(text string) int {
 		return idx + 1 // point at the "##"
 	}
 	return -1
+}
+
+// TicketMeta holds metadata parsed from the jt:meta comment in a ticket file.
+type TicketMeta struct {
+	Ticket  string
+	Fetched time.Time
+}
+
+// TicketInfo describes a local ticket file.
+type TicketInfo struct {
+	Key     string
+	Fetched time.Time
+	Path    string
+}
+
+// ParseMeta extracts the jt:meta comment from the first line of content.
+// Returns nil if the line is missing or malformed.
+func ParseMeta(content string) *TicketMeta {
+	line := content
+	if idx := strings.IndexByte(content, '\n'); idx >= 0 {
+		line = content[:idx]
+	}
+	const prefix = "<!-- jt:meta "
+	const suffix = " -->"
+	if !strings.HasPrefix(line, prefix) || !strings.HasSuffix(line, suffix) {
+		return nil
+	}
+	body := line[len(prefix) : len(line)-len(suffix)]
+
+	var meta TicketMeta
+	for _, part := range strings.Fields(body) {
+		key, val, ok := strings.Cut(part, "=")
+		if !ok {
+			continue
+		}
+		switch key {
+		case "ticket":
+			meta.Ticket = val
+		case "fetched":
+			t, err := time.Parse(time.RFC3339, val)
+			if err != nil {
+				return nil
+			}
+			meta.Fetched = t
+		}
+	}
+	if meta.Ticket == "" || meta.Fetched.IsZero() {
+		return nil
+	}
+	return &meta
+}
+
+// ListTickets reads all .md files from ticketsDir, parses metadata from each,
+// and returns them sorted by key. Files without valid metadata are skipped.
+func ListTickets(ticketsDir string) ([]TicketInfo, error) {
+	dir, err := expandTilde(ticketsDir)
+	if err != nil {
+		return nil, err
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("reading tickets directory: %w", err)
+	}
+
+	var tickets []TicketInfo
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+			continue
+		}
+		path := filepath.Join(dir, entry.Name())
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		meta := ParseMeta(string(data))
+		if meta == nil {
+			continue
+		}
+		tickets = append(tickets, TicketInfo{
+			Key:     meta.Ticket,
+			Fetched: meta.Fetched,
+			Path:    path,
+		})
+	}
+	sort.Slice(tickets, func(i, j int) bool {
+		return tickets[i].Key < tickets[j].Key
+	})
+	return tickets, nil
 }
 
 func expandTilde(path string) (string, error) {

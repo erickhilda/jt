@@ -135,6 +135,14 @@ type Epic struct {
 	Summary string `json:"summary"`
 }
 
+// SearchResult holds the response from a JQL search.
+type SearchResult struct {
+	StartAt    int     `json:"startAt"`
+	MaxResults int     `json:"maxResults"`
+	Total      int     `json:"total"`
+	Issues     []Issue `json:"issues"`
+}
+
 // ADFDoc is the top-level Atlassian Document Format document.
 type ADFDoc struct {
 	Type    string    `json:"type"`

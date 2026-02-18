@@ -63,10 +63,7 @@ func runPull(cmd *cobra.Command, args []string) error {
 
 	// Preserve existing "## My Notes" section if the file already exists.
 	if existing, err := store.Load(cfg.TicketsDir, canonicalKey); err == nil {
-		notes := store.ExtractNotes(existing)
-		if notes != "" {
-			content = strings.TrimRight(content, "\n") + "\n\n" + notes
-		}
+		content = preserveNotes(existing, content)
 	}
 
 	if dryRun {
@@ -80,6 +77,15 @@ func runPull(cmd *cobra.Command, args []string) error {
 	path, _ := store.TicketPath(cfg.TicketsDir, canonicalKey)
 	fmt.Printf("Saved %s to %s\n", canonicalKey, path)
 	return nil
+}
+
+// preserveNotes appends the "## My Notes" section from oldContent into newContent.
+func preserveNotes(oldContent, newContent string) string {
+	notes := store.ExtractNotes(oldContent)
+	if notes != "" {
+		return strings.TrimRight(newContent, "\n") + "\n\n" + notes
+	}
+	return newContent
 }
 
 func pullCommentsOnly(cfg *config.Config, issue *jira.Issue, key string, dryRun bool) error {

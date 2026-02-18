@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -184,6 +185,86 @@ func parseEpic(raw json.RawMessage) *Epic {
 		return &Epic{Key: key}
 	}
 	return nil
+}
+
+// SearchIssues performs a JQL search and returns matching issues.
+// The fields parameter controls which fields are returned; pass nil for defaults.
+func (c *Client) SearchIssues(jql string, fields []string) (*SearchResult, error) {
+	params := url.Values{}
+	params.Set("jql", jql)
+	params.Set("expand", "names")
+	if len(fields) > 0 {
+		params.Set("fields", strings.Join(fields, ","))
+	}
+
+	resp, err := c.do(http.MethodGet, "/rest/api/3/search?"+params.Encode(), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	switch resp.StatusCode {
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return nil, ErrUnauthorized
+	}
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, &APIError{
+			StatusCode: resp.StatusCode,
+			Message:    string(body),
+		}
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading search response: %w", err)
+	}
+
+	// Decode the outer search envelope with issues as raw JSON.
+	var envelope struct {
+		StartAt    int               `json:"startAt"`
+		MaxResults int               `json:"maxResults"`
+		Total      int               `json:"total"`
+		Issues     []json.RawMessage `json:"issues"`
+		Names      map[string]string `json:"names"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return nil, fmt.Errorf("decoding search response: %w", err)
+	}
+
+	result := &SearchResult{
+		StartAt:    envelope.StartAt,
+		MaxResults: envelope.MaxResults,
+		Total:      envelope.Total,
+	}
+
+	// Two-pass decode each issue, reusing the top-level names map.
+	for _, rawIssue := range envelope.Issues {
+		var raw IssueRaw
+		if err := json.Unmarshal(rawIssue, &raw); err != nil {
+			return nil, fmt.Errorf("decoding issue (raw): %w", err)
+		}
+
+		var fields IssueFields
+		if err := json.Unmarshal(raw.Fields, &fields); err != nil {
+			return nil, fmt.Errorf("decoding issue fields: %w", err)
+		}
+
+		issue := Issue{
+			Key:    raw.Key,
+			Fields: fields,
+		}
+
+		// Use per-issue names if available, fall back to top-level.
+		names := raw.Names
+		if len(names) == 0 {
+			names = envelope.Names
+		}
+		extractCustomFields(&issue, raw.Fields, names)
+		result.Issues = append(result.Issues, issue)
+	}
+
+	return result, nil
 }
 
 func (c *Client) do(method, path string, body io.Reader) (*http.Response, error) {

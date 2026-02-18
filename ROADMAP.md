@@ -134,7 +134,19 @@ token_storage: keyring         # or "file" if keyring unavailable
 **Local notes preservation:**
 If the user adds a `## My Notes` section at the bottom of the file, `jt pull` should preserve it across updates. This lets you annotate tickets locally.
 
-### Phase 3 — Search & List (Days 8–10)
+### Phase 3 — Sync & Diff (Days 8–10)
+
+**Goal:** Keep local files fresh with minimal effort.
+
+- [ ] `jt sync` — Re-pull all locally saved tickets that have been updated on Jira since last fetch
+  - Uses `updated` field from Jira REST API
+  - Only fetches tickets where remote `updated > local fetched` timestamp
+- [ ] `jt sync --project PROJ` — Sync only tickets from a specific project
+- [ ] `jt diff <TICKET-KEY>` — Show what changed since last pull (like `git diff`)
+  - Color-coded: new comments in green, status changes highlighted
+- [ ] `jt status` — Overview of all local tickets: how many are stale, recently updated, etc.
+
+### Phase 4 — Search & List (Days 11–13)
 
 **Goal:** Browse and search tickets without leaving the terminal.
 
@@ -148,18 +160,6 @@ If the user adds a `## My Notes` section at the bottom of the file, `jt pull` sh
 - [ ] `jt pull --jql <JQL>` — Bulk pull all tickets matching a query
   - e.g., `jt pull --jql "sprint = currentSprint() AND assignee = currentUser()"`
   - Great for pulling your entire sprint at once
-
-### Phase 4 — Sync & Diff (Days 11–13)
-
-**Goal:** Keep local files fresh with minimal effort.
-
-- [ ] `jt sync` — Re-pull all locally saved tickets that have been updated on Jira since last fetch
-  - Uses `updated` field from Jira REST API
-  - Only fetches tickets where remote `updated > local fetched` timestamp
-- [ ] `jt sync --project PROJ` — Sync only tickets from a specific project
-- [ ] `jt diff <TICKET-KEY>` — Show what changed since last pull (like `git diff`)
-  - Color-coded: new comments in green, status changes highlighted
-- [ ] `jt status` — Overview of all local tickets: how many are stale, recently updated, etc.
 
 ### Phase 5 — Quality of Life (Days 14–16)
 

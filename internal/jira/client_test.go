@@ -325,3 +325,118 @@ func TestGetIssueServerError(t *testing.T) {
 		t.Errorf("StatusCode = %d, want 500", apiErr.StatusCode)
 	}
 }
+
+// searchJSON is a JQL search response fixture.
+const searchJSON = `{
+  "startAt": 0,
+  "maxResults": 50,
+  "total": 1,
+  "names": {
+    "summary": "Summary",
+    "status": "Status",
+    "customfield_10020": "Sprint"
+  },
+  "issues": [
+    {
+      "key": "PROJ-123",
+      "fields": {
+        "summary": "Implement OAuth2 flow",
+        "status": {"name": "In Progress"},
+        "issuetype": {"name": "Story"},
+        "priority": {"name": "High"},
+        "created": "2026-02-01T10:00:00.000+0000",
+        "updated": "2026-02-10T14:30:00.000+0000",
+        "customfield_10020": [{"name": "Sprint 14"}]
+      }
+    }
+  ]
+}`
+
+func TestSearchIssuesSuccess(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/rest/api/3/search" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("jql") == "" {
+			t.Error("expected jql query param")
+		}
+		if r.URL.Query().Get("expand") != "names" {
+			t.Errorf("expected expand=names, got: %s", r.URL.Query().Get("expand"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(searchJSON))
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test@example.com", "token123")
+	result, err := client.SearchIssues("key = PROJ-123", nil)
+	if err != nil {
+		t.Fatalf("SearchIssues: %v", err)
+	}
+	if result.Total != 1 {
+		t.Errorf("Total = %d, want 1", result.Total)
+	}
+	if len(result.Issues) != 1 {
+		t.Fatalf("Issues count = %d, want 1", len(result.Issues))
+	}
+	if result.Issues[0].Key != "PROJ-123" {
+		t.Errorf("Key = %q, want PROJ-123", result.Issues[0].Key)
+	}
+	if result.Issues[0].Fields.Summary != "Implement OAuth2 flow" {
+		t.Errorf("Summary = %q", result.Issues[0].Fields.Summary)
+	}
+}
+
+func TestSearchIssuesEmpty(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"startAt":0,"maxResults":50,"total":0,"issues":[]}`))
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test@example.com", "token123")
+	result, err := client.SearchIssues("key = NOPE-1", nil)
+	if err != nil {
+		t.Fatalf("SearchIssues: %v", err)
+	}
+	if result.Total != 0 {
+		t.Errorf("Total = %d, want 0", result.Total)
+	}
+	if len(result.Issues) != 0 {
+		t.Errorf("Issues count = %d, want 0", len(result.Issues))
+	}
+}
+
+func TestSearchIssuesUnauthorized(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "bad@example.com", "wrong")
+	_, err := client.SearchIssues("key = PROJ-1", nil)
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized, got: %v", err)
+	}
+}
+
+func TestSearchIssuesServerError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("server error"))
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test@example.com", "token123")
+	_, err := client.SearchIssues("key = PROJ-1", nil)
+	if err == nil {
+		t.Fatal("expected error for 500")
+	}
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("expected APIError, got: %T", err)
+	}
+	if apiErr.StatusCode != 500 {
+		t.Errorf("StatusCode = %d, want 500", apiErr.StatusCode)
+	}
+}

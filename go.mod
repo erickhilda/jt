@@ -3,6 +3,7 @@ module github.com/erickhilda/jt
 go 1.25.6
 
 require (
+	github.com/pmezard/go-difflib v1.0.0
 	github.com/spf13/cobra v1.10.2
 	github.com/zalando/go-keyring v0.2.6
 	golang.org/x/term v0.40.0

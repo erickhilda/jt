@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestSaveAndLoad(t *testing.T) {
@@ -166,5 +167,94 @@ func TestLoadMissingFile(t *testing.T) {
 	_, err := Load(dir, "MISSING-1")
 	if err == nil {
 		t.Error("expected error loading missing file")
+	}
+}
+
+func TestParseMetaValid(t *testing.T) {
+	content := "<!-- jt:meta ticket=PROJ-123 fetched=2026-02-17T10:30:00Z -->\n# PROJ-123: Title\n"
+	meta := ParseMeta(content)
+	if meta == nil {
+		t.Fatal("expected non-nil meta")
+	}
+	if meta.Ticket != "PROJ-123" {
+		t.Errorf("Ticket = %q, want PROJ-123", meta.Ticket)
+	}
+	want := time.Date(2026, 2, 17, 10, 30, 0, 0, time.UTC)
+	if !meta.Fetched.Equal(want) {
+		t.Errorf("Fetched = %v, want %v", meta.Fetched, want)
+	}
+}
+
+func TestParseMetaMissing(t *testing.T) {
+	content := "# PROJ-123: Title\n\nNo meta comment here.\n"
+	meta := ParseMeta(content)
+	if meta != nil {
+		t.Errorf("expected nil meta, got %+v", meta)
+	}
+}
+
+func TestParseMetaMalformedTimestamp(t *testing.T) {
+	content := "<!-- jt:meta ticket=PROJ-1 fetched=not-a-date -->\n"
+	meta := ParseMeta(content)
+	if meta != nil {
+		t.Errorf("expected nil meta for malformed timestamp, got %+v", meta)
+	}
+}
+
+func TestParseMetaIncompleteFields(t *testing.T) {
+	content := "<!-- jt:meta ticket=PROJ-1 -->\n"
+	meta := ParseMeta(content)
+	if meta != nil {
+		t.Errorf("expected nil meta when fetched is missing, got %+v", meta)
+	}
+}
+
+func TestListTicketsPopulated(t *testing.T) {
+	dir := t.TempDir()
+	files := map[string]string{
+		"PROJ-200.md": "<!-- jt:meta ticket=PROJ-200 fetched=2026-02-17T08:00:00Z -->\n# PROJ-200\n",
+		"PROJ-100.md": "<!-- jt:meta ticket=PROJ-100 fetched=2026-02-16T10:00:00Z -->\n# PROJ-100\n",
+		"README.md":   "# Not a ticket\n",
+	}
+	for name, content := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
+			t.Fatalf("writing %s: %v", name, err)
+		}
+	}
+
+	tickets, err := ListTickets(dir)
+	if err != nil {
+		t.Fatalf("ListTickets: %v", err)
+	}
+	if len(tickets) != 2 {
+		t.Fatalf("got %d tickets, want 2", len(tickets))
+	}
+	// Should be sorted by key.
+	if tickets[0].Key != "PROJ-100" {
+		t.Errorf("tickets[0].Key = %q, want PROJ-100", tickets[0].Key)
+	}
+	if tickets[1].Key != "PROJ-200" {
+		t.Errorf("tickets[1].Key = %q, want PROJ-200", tickets[1].Key)
+	}
+}
+
+func TestListTicketsEmptyDir(t *testing.T) {
+	dir := t.TempDir()
+	tickets, err := ListTickets(dir)
+	if err != nil {
+		t.Fatalf("ListTickets: %v", err)
+	}
+	if len(tickets) != 0 {
+		t.Errorf("expected 0 tickets, got %d", len(tickets))
+	}
+}
+
+func TestListTicketsNonexistentDir(t *testing.T) {
+	tickets, err := ListTickets("/tmp/nonexistent-jt-test-dir-12345")
+	if err != nil {
+		t.Fatalf("ListTickets: %v", err)
+	}
+	if tickets != nil {
+		t.Errorf("expected nil tickets for nonexistent dir, got %v", tickets)
 	}
 }
