@@ -42,7 +42,10 @@ func runPull(cmd *cobra.Command, args []string) error {
 	}
 
 	client := jira.NewClient(cfg.Instance, cfg.Email, token)
-	issue, err := client.GetIssue(ticketKey)
+
+	// --comments-only always fetches comments regardless of config.
+	fetchComments := cfg.ShouldFetchComments() || commentsOnly
+	issue, err := client.GetIssueWithFields(ticketKey, issueFieldsFor(fetchComments))
 	if err != nil {
 		if errors.Is(err, jira.ErrNotFound) {
 			return fmt.Errorf("ticket %s not found", ticketKey)
@@ -61,9 +64,10 @@ func runPull(cmd *cobra.Command, args []string) error {
 
 	content := renderer.RenderIssue(issue)
 
-	// Preserve existing "## My Notes" section if the file already exists.
+	// Preserve existing "## My Notes" (and "## Comments" when we didn't fetch
+	// them) so local history survives re-pulls.
 	if existing, err := store.Load(cfg.TicketsDir, canonicalKey); err == nil {
-		content = preserveNotes(existing, content)
+		content = preserveSections(existing, content, fetchComments)
 	}
 
 	if dryRun {
@@ -86,6 +90,29 @@ func preserveNotes(oldContent, newContent string) string {
 		return strings.TrimRight(newContent, "\n") + "\n\n" + notes
 	}
 	return newContent
+}
+
+// preserveSections preserves user-editable sections from oldContent when
+// rendering newContent. Always preserves "## My Notes". When fetchComments is
+// false the remote issue has no comments, so we also preserve any existing
+// "## Comments" block rather than dropping it from the file. Order: Comments
+// before Notes (matching how RenderIssue emits them).
+func preserveSections(oldContent, newContent string, fetchComments bool) string {
+	if !fetchComments {
+		if comments := store.ExtractSection(oldContent, "## Comments"); comments != "" {
+			newContent = strings.TrimRight(newContent, "\n") + "\n\n" + comments
+		}
+	}
+	return preserveNotes(oldContent, newContent)
+}
+
+// issueFieldsFor returns the Jira "fields" query value for a fetch. Empty
+// string means "server default"; "*all,-comment" omits comments.
+func issueFieldsFor(fetchComments bool) string {
+	if fetchComments {
+		return ""
+	}
+	return "*all,-comment"
 }
 
 func pullCommentsOnly(cfg *config.Config, issue *jira.Issue, key string, dryRun bool) error {

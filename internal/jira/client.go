@@ -58,10 +58,22 @@ func (c *Client) Myself() (*User, error) {
 	return &user, nil
 }
 
-// GetIssue fetches a Jira issue by key using a two-pass decode to handle
-// custom fields (sprint, epic) identified via the expand=names response.
+// GetIssue fetches a Jira issue by key with all default fields, using a
+// two-pass decode to handle custom fields (sprint, epic) via expand=names.
 func (c *Client) GetIssue(key string) (*Issue, error) {
-	resp, err := c.do(http.MethodGet, "/rest/api/3/issue/"+key+"?expand=names", nil)
+	return c.GetIssueWithFields(key, "")
+}
+
+// GetIssueWithFields fetches a Jira issue by key, optionally narrowing the
+// returned fields via the Jira "fields" query param (e.g. "*all,-comment" to
+// request everything except comments). An empty fields string requests the
+// server default. Custom field extraction (sprint, epic) uses expand=names.
+func (c *Client) GetIssueWithFields(key, fieldsQuery string) (*Issue, error) {
+	path := "/rest/api/3/issue/" + key + "?expand=names"
+	if fieldsQuery != "" {
+		path += "&fields=" + url.QueryEscape(fieldsQuery)
+	}
+	resp, err := c.do(http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}

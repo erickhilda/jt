@@ -105,6 +105,72 @@ func TestExtractNotesEmpty(t *testing.T) {
 	}
 }
 
+func TestExtractSection(t *testing.T) {
+	content := "# PROJ-1: Title\n\n## Description\n\nDesc.\n\n## Comments (1)\n\n### Alice -- 2026-01-01\n\nHello.\n\n## My Notes\n\nMine.\n"
+
+	got := ExtractSection(content, "## Comments")
+	if !strings.HasPrefix(got, "## Comments (1)") {
+		t.Errorf("expected Comments block to start with heading, got: %q", got)
+	}
+	if !strings.Contains(got, "Hello.") {
+		t.Errorf("expected comment body in block, got: %q", got)
+	}
+	if strings.Contains(got, "## My Notes") {
+		t.Errorf("block should stop before next h2, got: %q", got)
+	}
+	if !strings.HasSuffix(got, "\n") {
+		t.Errorf("block should end with a single newline, got: %q", got)
+	}
+}
+
+func TestExtractSectionAtEOF(t *testing.T) {
+	content := "# PROJ-1\n\n## Comments (1)\n\nTail comment.\n"
+	got := ExtractSection(content, "## Comments")
+	if !strings.Contains(got, "Tail comment.") {
+		t.Errorf("expected tail comment, got: %q", got)
+	}
+}
+
+func TestExtractSectionMissing(t *testing.T) {
+	content := "# PROJ-1\n\n## Description\n\nDesc.\n"
+	if got := ExtractSection(content, "## Comments"); got != "" {
+		t.Errorf("expected empty string when section absent, got: %q", got)
+	}
+}
+
+func TestRemoveSectionMiddle(t *testing.T) {
+	content := "# PROJ-1\n\n## Description\n\nDesc.\n\n## Comments (1)\n\nHello.\n\n## My Notes\n\nMine.\n"
+	got := RemoveSection(content, "## Comments")
+	if strings.Contains(got, "## Comments") {
+		t.Errorf("expected Comments removed, got: %q", got)
+	}
+	if !strings.Contains(got, "## Description") || !strings.Contains(got, "## My Notes") {
+		t.Errorf("expected surrounding sections preserved, got: %q", got)
+	}
+	if !strings.Contains(got, "Mine.") {
+		t.Errorf("expected My Notes body preserved, got: %q", got)
+	}
+}
+
+func TestRemoveSectionAtEOF(t *testing.T) {
+	content := "# PROJ-1\n\n## Description\n\nDesc.\n\n## Comments (1)\n\nHello.\n"
+	got := RemoveSection(content, "## Comments")
+	if strings.Contains(got, "## Comments") {
+		t.Errorf("expected Comments removed, got: %q", got)
+	}
+	if !strings.Contains(got, "## Description") {
+		t.Errorf("expected Description preserved, got: %q", got)
+	}
+}
+
+func TestRemoveSectionMissing(t *testing.T) {
+	content := "# PROJ-1\n\n## Description\n\nDesc.\n"
+	got := RemoveSection(content, "## Comments")
+	if got != content {
+		t.Errorf("expected content unchanged, got: %q", got)
+	}
+}
+
 func TestReplaceSectionExisting(t *testing.T) {
 	content := "# PROJ-1: Title\n\n## Description\n\nOld desc.\n\n## Comments (1)\n\n### Alice -- 2026-01-01\n\nOld comment.\n\n## My Notes\n\nMy notes here.\n"
 	newComments := "## Comments (2)\n\n### Alice -- 2026-01-01\n\nOld comment.\n\n### Bob -- 2026-01-02\n\nNew comment.\n"

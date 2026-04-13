@@ -96,11 +96,12 @@ Display all configuration settings (token is masked).
 
 Update a single configuration value.
 
-Valid keys: `instance`, `email`, `default_project`, `tickets_dir`, `token`.
+Valid keys: `instance`, `email`, `default_project`, `tickets_dir`, `fetch_comments`, `token`.
 
 ```bash
 jt config set instance https://myorg.atlassian.net
 jt config set default_project PROJ
+jt config set fetch_comments false
 ```
 
 ### `jt pull <TICKET-KEY>`
@@ -144,6 +145,7 @@ email: you@company.com
 default_project: PROJ
 tickets_dir: ~/.jt/tickets
 token_storage: keyring
+fetch_comments: true
 ```
 
 | Key | Description |
@@ -153,6 +155,7 @@ token_storage: keyring
 | `default_project` | Default project key (optional) |
 | `tickets_dir` | Directory for saved tickets (default: `~/.jt/tickets`) |
 | `token_storage` | `keyring` (system keyring) or `file` (`~/.jt/credentials`, 0600) |
+| `fetch_comments` | Fetch and render the Comments section. Default `true`. Set `false` to skip comments on `pull`, `diff`, and `sync` (smaller payloads; existing `## Comments` blocks in local files are preserved). `jt pull --comments-only` overrides this and always refreshes comments. |
 
 API tokens are stored in your system keyring when available, with an automatic fallback to an encrypted credentials file.
 

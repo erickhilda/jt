@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/erickhilda/jt/internal/config"
@@ -22,11 +23,12 @@ var configShowCmd = &cobra.Command{
 var configSetCmd = &cobra.Command{
 	Use:   "set <key> <value>",
 	Short: "Update a configuration setting",
-	Long: `Valid keys: instance, email, default_project, tickets_dir, token
+	Long: `Valid keys: instance, email, default_project, tickets_dir, fetch_comments, token
 
 Examples:
   jt config set instance https://myorg.atlassian.net
   jt config set default_project PROJ
+  jt config set fetch_comments false
   jt config set token <new-api-token>`,
 	Args: cobra.ExactArgs(2),
 	RunE: runConfigSet,
@@ -55,6 +57,7 @@ func runConfigShow(cmd *cobra.Command, args []string) error {
 	fmt.Printf("default_project: %s\n", cfg.DefaultProject)
 	fmt.Printf("tickets_dir:     %s\n", cfg.TicketsDir)
 	fmt.Printf("token_storage:   %s\n", cfg.TokenStorage)
+	fmt.Printf("fetch_comments:  %t\n", cfg.ShouldFetchComments())
 	fmt.Printf("token:           %s\n", token)
 	return nil
 }
@@ -84,8 +87,14 @@ func runConfigSet(cmd *cobra.Command, args []string) error {
 		cfg.DefaultProject = strings.ToUpper(value)
 	case "tickets_dir":
 		cfg.TicketsDir = value
+	case "fetch_comments":
+		b, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("fetch_comments must be true or false, got %q", value)
+		}
+		cfg.FetchComments = &b
 	default:
-		return fmt.Errorf("unknown key %q; valid keys: instance, email, default_project, tickets_dir, token", key)
+		return fmt.Errorf("unknown key %q; valid keys: instance, email, default_project, tickets_dir, fetch_comments, token", key)
 	}
 
 	if err := config.Save(cfg); err != nil {

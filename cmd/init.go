@@ -75,6 +75,16 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	fetchCommentsAns, err := promptString(reader, "Fetch comments by default? [Y/n]: ")
+	if err != nil {
+		return err
+	}
+	var fetchComments *bool
+	if ans := strings.ToLower(strings.TrimSpace(fetchCommentsAns)); ans == "n" || ans == "no" {
+		no := false
+		fetchComments = &no
+	}
+
 	storage, err := config.SetToken(email, token)
 	if err != nil {
 		return fmt.Errorf("storing token: %w", err)
@@ -86,6 +96,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		DefaultProject: strings.ToUpper(strings.TrimSpace(defaultProject)),
 		TicketsDir:     "~/.jt/tickets",
 		TokenStorage:   storage,
+		FetchComments:  fetchComments,
 	}
 
 	if err := config.Save(cfg); err != nil {

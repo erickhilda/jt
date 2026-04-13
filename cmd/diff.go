@@ -50,7 +50,8 @@ func runDiff(cmd *cobra.Command, args []string) error {
 	}
 
 	client := jira.NewClient(cfg.Instance, cfg.Email, token)
-	issue, err := client.GetIssue(ticketKey)
+	fetchComments := cfg.ShouldFetchComments()
+	issue, err := client.GetIssueWithFields(ticketKey, issueFieldsFor(fetchComments))
 	if err != nil {
 		if errors.Is(err, jira.ErrNotFound) {
 			return fmt.Errorf("ticket %s not found on Jira", ticketKey)
@@ -59,6 +60,12 @@ func runDiff(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("authentication failed: %w", err)
 		}
 		return fmt.Errorf("fetching ticket: %w", err)
+	}
+
+	// When comments aren't fetched, strip any stale local "## Comments" block
+	// so the two sides are symmetric and don't produce phantom diffs.
+	if !fetchComments {
+		localContent = store.RemoveSection(localContent, "## Comments")
 	}
 
 	// Render fresh content, preserving local notes.

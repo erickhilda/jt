@@ -176,6 +176,28 @@ func TestExpandPath(t *testing.T) {
 	}
 }
 
+func TestShouldFetchComments(t *testing.T) {
+	yes := true
+	no := false
+	tests := []struct {
+		name string
+		cfg  *Config
+		want bool
+	}{
+		{"nil config defaults to true", nil, true},
+		{"unset field defaults to true", &Config{}, true},
+		{"explicit true", &Config{FetchComments: &yes}, true},
+		{"explicit false", &Config{FetchComments: &no}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.cfg.ShouldFetchComments(); got != tt.want {
+				t.Errorf("ShouldFetchComments() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestSaveCreatesDirectory(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "nested", "dir")
 	SetConfigDir(dir)

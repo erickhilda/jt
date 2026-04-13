@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -234,6 +235,55 @@ func TestGetIssueSuccess(t *testing.T) {
 	}
 	if issue.Fields.Parent == nil || issue.Fields.Parent.Key != "PROJ-80" {
 		t.Errorf("Parent = %v", issue.Fields.Parent)
+	}
+}
+
+func TestGetIssueWithFieldsQuery(t *testing.T) {
+	var gotQuery string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotQuery = r.URL.RawQuery
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(issueJSON))
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test@example.com", "token123")
+	if _, err := client.GetIssueWithFields("PROJ-123", "*all,-comment"); err != nil {
+		t.Fatalf("GetIssueWithFields: %v", err)
+	}
+
+	// expand=names must still be present, and the fields param must be URL-encoded.
+	if !strings.Contains(gotQuery, "expand=names") {
+		t.Errorf("expected expand=names in query, got: %s", gotQuery)
+	}
+	if !strings.Contains(gotQuery, "fields=") {
+		t.Errorf("expected fields= in query, got: %s", gotQuery)
+	}
+	// The literal request value "*all,-comment" contains a comma which survives
+	// QueryEscape unchanged, but the "*" must remain (not mangled).
+	if !strings.Contains(gotQuery, "%2Aall%2C-comment") && !strings.Contains(gotQuery, "*all%2C-comment") && !strings.Contains(gotQuery, "*all,-comment") {
+		t.Errorf("expected fields=*all,-comment (any reasonable encoding) in query, got: %s", gotQuery)
+	}
+}
+
+func TestGetIssueEmptyFieldsOmitsParam(t *testing.T) {
+	var gotQuery string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotQuery = r.URL.RawQuery
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(issueJSON))
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test@example.com", "token123")
+	if _, err := client.GetIssue("PROJ-123"); err != nil {
+		t.Fatalf("GetIssue: %v", err)
+	}
+	if strings.Contains(gotQuery, "fields=") {
+		t.Errorf("expected no fields param for GetIssue, got: %s", gotQuery)
+	}
+	if !strings.Contains(gotQuery, "expand=names") {
+		t.Errorf("expected expand=names, got: %s", gotQuery)
 	}
 }
 
