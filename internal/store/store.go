@@ -61,12 +61,52 @@ func TicketPath(ticketsDir, key string) (string, error) {
 // ExtractNotes extracts the "## My Notes" section from existing file content.
 // This section is preserved across re-pulls so users don't lose local annotations.
 func ExtractNotes(content string) string {
-	const marker = "## My Notes"
-	idx := strings.Index(content, marker)
+	return ExtractSection(content, "## My Notes")
+}
+
+// ExtractSection returns the full "## <heading>" block from content, from the
+// heading line through the line before the next "## " heading (or EOF).
+// Returns "" if the heading is not present. The result always ends in a single
+// trailing newline so callers can concatenate it directly.
+func ExtractSection(content, heading string) string {
+	idx := strings.Index(content, heading)
 	if idx < 0 {
 		return ""
 	}
-	return strings.TrimRight(content[idx:], "\n") + "\n"
+	rest := content[idx+len(heading):]
+	end := findNextH2(rest)
+	var block string
+	if end < 0 {
+		block = content[idx:]
+	} else {
+		block = content[idx : idx+len(heading)+end]
+	}
+	return strings.TrimRight(block, "\n") + "\n"
+}
+
+// RemoveSection strips a "## <heading>" block from content and returns the
+// remainder. The block runs from the heading line through the line before the
+// next "## " heading (or EOF). If the heading is absent, content is returned
+// unchanged.
+func RemoveSection(content, heading string) string {
+	idx := strings.Index(content, heading)
+	if idx < 0 {
+		return content
+	}
+	rest := content[idx+len(heading):]
+	end := findNextH2(rest)
+	before := strings.TrimRight(content[:idx], "\n")
+	if end < 0 {
+		if before == "" {
+			return ""
+		}
+		return before + "\n"
+	}
+	after := rest[end:]
+	if before == "" {
+		return after
+	}
+	return before + "\n\n" + after
 }
 
 // ReplaceSection replaces a ## section in content with new content.

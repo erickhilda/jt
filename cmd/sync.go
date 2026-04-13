@@ -133,7 +133,8 @@ func runSync(cmd *cobra.Command, _ []string) error {
 			continue
 		}
 
-		issue, err := client.GetIssue(t.Key)
+		fetchComments := cfg.ShouldFetchComments()
+		issue, err := client.GetIssueWithFields(t.Key, issueFieldsFor(fetchComments))
 		if err != nil {
 			fmt.Printf("  %s: error: %v\n", t.Key, err)
 			continue
@@ -141,9 +142,9 @@ func runSync(cmd *cobra.Command, _ []string) error {
 
 		content := renderer.RenderIssue(issue)
 
-		// Preserve local notes.
+		// Preserve local notes (and Comments when we didn't fetch them).
 		if existing, loadErr := store.Load(cfg.TicketsDir, t.Key); loadErr == nil {
-			content = preserveNotes(existing, content)
+			content = preserveSections(existing, content, fetchComments)
 		}
 
 		if err := store.Save(cfg.TicketsDir, t.Key, content); err != nil {

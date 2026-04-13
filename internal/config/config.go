@@ -31,6 +31,18 @@ type Config struct {
 	DefaultProject string       `yaml:"default_project,omitempty"`
 	TicketsDir     string       `yaml:"tickets_dir"`
 	TokenStorage   TokenStorage `yaml:"token_storage"`
+	// FetchComments controls whether pull/diff/sync request and render comments.
+	// Pointer so "field absent" means "default true" (backward compatible).
+	FetchComments *bool `yaml:"fetch_comments,omitempty"`
+}
+
+// ShouldFetchComments returns whether comments should be fetched and rendered.
+// Default (nil) is true to preserve prior behavior.
+func (c *Config) ShouldFetchComments() bool {
+	if c == nil || c.FetchComments == nil {
+		return true
+	}
+	return *c.FetchComments
 }
 
 // SetConfigDir overrides the config directory (for testing).
