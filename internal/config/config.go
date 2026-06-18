@@ -38,6 +38,17 @@ type Config struct {
 	BitbucketWorkspace string `yaml:"bitbucket_workspace,omitempty"`
 	// PRsDir is where `jt pr` saves pull-request markdown (default ~/.jt/prs).
 	PRsDir string `yaml:"prs_dir,omitempty"`
+	// PagesDir is where `jt page` saves Confluence page markdown (default ~/.jt/pages).
+	PagesDir string `yaml:"pages_dir,omitempty"`
+}
+
+// PagesDirOrDefault returns the configured Confluence page storage directory,
+// defaulting to ~/.jt/pages when unset.
+func (c *Config) PagesDirOrDefault() string {
+	if c == nil || c.PagesDir == "" {
+		return "~/.jt/pages"
+	}
+	return c.PagesDir
 }
 
 // PRsDirOrDefault returns the configured PR storage directory, defaulting to

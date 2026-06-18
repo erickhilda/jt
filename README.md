@@ -11,6 +11,7 @@ A lightweight CLI to pull Jira Cloud tickets into local markdown files.
 - Open tickets in your browser directly from the terminal
 - Print file paths for easy piping to other tools
 - Fetch Bitbucket Cloud pull requests (diff + comments) as markdown for code-review context
+- Fetch Confluence Cloud pages as markdown (ADF-to-markdown) for offline reading and LLM context
 
 ## Installation
 
@@ -161,6 +162,25 @@ PRs are saved to `prs_dir` (default `~/.jt/prs`) as `<workspace>__<repo>__<id>.m
 
 The full unified diff is embedded by default; on a large diff `jt pr` prints a warning (it never silently truncates) so you can re-run with `--no-diff`.
 
+### `jt page <PAGE-ID | URL>`
+
+Fetch a Confluence Cloud page (title, metadata, body) and save it as local markdown for offline reading and LLM context. The page body is converted from Atlassian Document Format to markdown using the same converter as `jt pull`.
+
+This reuses your existing Jira API token — Confluence lives on the same Atlassian site (`<instance>/wiki`) and uses the same authentication, so no separate login is needed as long as the token has Confluence access (unscoped API tokens do; a scoped token needs a Confluence read scope).
+
+Reference forms:
+
+```bash
+jt page 12345                                                       # numeric page ID
+jt page https://acme.atlassian.net/wiki/spaces/ENG/pages/12345/Title   # full page URL
+```
+
+| Flag | Description |
+|------|-------------|
+| `--dry-run` | Show a diff of what would change without saving |
+
+Pages are saved to `pages_dir` (default `~/.jt/pages`) as `<space>__<id>__<slug>.md`. A `## My Notes` section is preserved across re-fetches.
+
 ## Configuration
 
 Configuration is stored in `~/.jt/config.yaml`:
@@ -184,6 +204,7 @@ fetch_comments: true
 | `fetch_comments` | Fetch and render the Comments section. Default `true`. Set `false` to skip comments on `pull`, `diff`, and `sync` (smaller payloads; existing `## Comments` blocks in local files are preserved). `jt pull --comments-only` overrides this and always refreshes comments. |
 | `bitbucket_workspace` | Default Bitbucket workspace for `jt pr <repo>/<id>` references |
 | `prs_dir` | Directory for saved pull requests (default: `~/.jt/prs`) |
+| `pages_dir` | Directory for saved Confluence pages (default: `~/.jt/pages`) |
 
 API tokens are stored in your system keyring when available, with an automatic fallback to an encrypted credentials file.
 

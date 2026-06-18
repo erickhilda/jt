@@ -198,6 +198,19 @@ Atlassian MCP Bitbucket integration isn't available.
 - [x] Milestone 1 — `internal/bitbucket` client + `jt pr <id>` (git-remote inference), `--no-diff`, My Notes preservation, `~/.jt/prs/<workspace>__<repo>__<id>.md`, Jira-key linking
 - [ ] Deferred (v2): write-back (approve/comment/merge), `jt pr view/open/path/list`, diff path-filtering, Bitbucket Server/DC
 
+### Phase 8 — Confluence page support (`jt page`) [DONE]
+
+**Goal:** Pull a Confluence Cloud page (title + metadata + body) into a local markdown
+file for offline reading and LLM context, mirroring `jt pull` for tickets.
+
+Same Atlassian host and Basic auth as Jira, so it reuses the existing Jira token and
+the ADF-to-markdown converter (`jira.RenderADF`).
+
+- [x] `internal/confluence` client — `GetPage(id)` against `/wiki/api/v2/pages/{id}?body-format=atlas_doc_format`
+- [x] `renderer.RenderPage` — metadata table + `## Content` (ADF body reused via `jira.RenderADF`)
+- [x] `jt page <id | url>` — numeric ID or page URL, reuses the Jira token, `--dry-run`, My Notes preservation, `~/.jt/pages/<space>__<id>__<slug>.md` (`pages_dir`)
+- [ ] Deferred (v2): child-page expansion, page comments, attachments/labels, `jt page view/open/path/list`, CQL search, sync/diff for pages, scoped-token `jt auth confluence`
+
 ---
 
 ## Architecture

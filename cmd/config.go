@@ -24,7 +24,7 @@ var configSetCmd = &cobra.Command{
 	Use:   "set <key> <value>",
 	Short: "Update a configuration setting",
 	Long: `Valid keys: instance, email, default_project, tickets_dir, fetch_comments,
-token, bitbucket_workspace, prs_dir, bitbucket_token
+token, bitbucket_workspace, prs_dir, bitbucket_token, pages_dir
 
 Examples:
   jt config set instance https://myorg.atlassian.net
@@ -32,7 +32,8 @@ Examples:
   jt config set fetch_comments false
   jt config set token <new-api-token>
   jt config set bitbucket_workspace acme
-  jt config set bitbucket_token <new-bitbucket-api-token>`,
+  jt config set bitbucket_token <new-bitbucket-api-token>
+  jt config set pages_dir ~/notes/confluence`,
 	Args: cobra.ExactArgs(2),
 	RunE: runConfigSet,
 }
@@ -70,6 +71,7 @@ func runConfigShow(cmd *cobra.Command, args []string) error {
 	fmt.Printf("bitbucket_workspace: %s\n", cfg.BitbucketWorkspace)
 	fmt.Printf("prs_dir:             %s\n", cfg.PRsDirOrDefault())
 	fmt.Printf("bitbucket_token:     %s\n", bbToken)
+	fmt.Printf("pages_dir:           %s\n", cfg.PagesDirOrDefault())
 	return nil
 }
 
@@ -111,8 +113,10 @@ func runConfigSet(cmd *cobra.Command, args []string) error {
 		cfg.BitbucketWorkspace = value
 	case "prs_dir":
 		cfg.PRsDir = value
+	case "pages_dir":
+		cfg.PagesDir = value
 	default:
-		return fmt.Errorf("unknown key %q; valid keys: instance, email, default_project, tickets_dir, fetch_comments, token, bitbucket_workspace, prs_dir, bitbucket_token", key)
+		return fmt.Errorf("unknown key %q; valid keys: instance, email, default_project, tickets_dir, fetch_comments, token, bitbucket_workspace, prs_dir, bitbucket_token, pages_dir", key)
 	}
 
 	if err := config.Save(cfg); err != nil {

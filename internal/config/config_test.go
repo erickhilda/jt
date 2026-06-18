@@ -198,6 +198,18 @@ func TestShouldFetchComments(t *testing.T) {
 	}
 }
 
+func TestPagesDirOrDefault(t *testing.T) {
+	if got := (*Config)(nil).PagesDirOrDefault(); got != "~/.jt/pages" {
+		t.Errorf("nil config: got %q", got)
+	}
+	if got := (&Config{}).PagesDirOrDefault(); got != "~/.jt/pages" {
+		t.Errorf("unset: got %q", got)
+	}
+	if got := (&Config{PagesDir: "~/custom"}).PagesDirOrDefault(); got != "~/custom" {
+		t.Errorf("set: got %q", got)
+	}
+}
+
 func TestSaveCreatesDirectory(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "nested", "dir")
 	SetConfigDir(dir)
