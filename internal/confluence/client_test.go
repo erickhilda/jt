@@ -67,6 +67,55 @@ func TestGetPage(t *testing.T) {
 	}
 }
 
+func TestGetPageAttachments(t *testing.T) {
+	var paths []string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.URL.Path+"?"+r.URL.RawQuery)
+		// First page returns a next cursor; second page closes the list.
+		if r.URL.Query().Get("cursor") == "" {
+			_, _ = w.Write([]byte(`{
+				"results":[{"id":"att1","title":"a.png","mediaType":"image/png","fileSize":10,"downloadLink":"/download/attachments/1/a.png"}],
+				"_links":{"next":"/wiki/api/v2/pages/1/attachments?cursor=NEXT"}
+			}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{
+			"results":[{"id":"att2","title":"b.txt","mediaType":"text/plain","fileSize":20,"downloadLink":"/download/attachments/1/b.txt"}],
+			"_links":{}
+		}`))
+	}))
+	defer ts.Close()
+
+	atts, err := testClient(ts).GetPageAttachments("1")
+	if err != nil {
+		t.Fatalf("GetPageAttachments: %v", err)
+	}
+	if len(atts) != 2 {
+		t.Fatalf("want 2 attachments, got %d: %+v", len(atts), atts)
+	}
+	if atts[0].Title != "a.png" || atts[1].Title != "b.txt" {
+		t.Errorf("unexpected attachments: %+v", atts)
+	}
+	if len(paths) != 2 {
+		t.Errorf("expected 2 requests (pagination), got %d: %v", len(paths), paths)
+	}
+}
+
+func TestGetPageAttachmentsEmpty(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"results":[],"_links":{}}`))
+	}))
+	defer ts.Close()
+
+	atts, err := testClient(ts).GetPageAttachments("1")
+	if err != nil {
+		t.Fatalf("GetPageAttachments: %v", err)
+	}
+	if len(atts) != 0 {
+		t.Errorf("want empty, got %+v", atts)
+	}
+}
+
 func TestStatusErrors(t *testing.T) {
 	cases := []struct {
 		code int

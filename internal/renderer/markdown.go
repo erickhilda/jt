@@ -64,6 +64,16 @@ func RenderIssue(issue *jira.Issue) string {
 		b.WriteString("*No description provided.*\n\n")
 	}
 
+	// Attachments. Inline images in the description reference these by filename;
+	// this section maps each filename to its authenticated download URL.
+	if len(issue.Fields.Attachment) > 0 {
+		b.WriteString("## Attachments\n\n")
+		for _, att := range issue.Fields.Attachment {
+			writeAttachment(&b, att.Filename, att.MimeType, att.Content)
+		}
+		b.WriteString("\n")
+	}
+
 	// Subtasks.
 	if len(issue.Fields.Subtasks) > 0 {
 		b.WriteString("## Subtasks\n\n")
@@ -153,6 +163,20 @@ func RenderComments(issue *jira.Issue) string {
 		b.WriteString("## Comments (0)\n\n*No comments.*\n\n")
 	}
 	return strings.TrimRight(b.String(), "\n") + "\n"
+}
+
+// writeAttachment renders one attachment list item as "- name (mime) - url",
+// omitting the mime and url segments when empty. Shared by issue and page
+// rendering.
+func writeAttachment(b *strings.Builder, name, mime, url string) {
+	line := "- " + name
+	if mime != "" {
+		line += " (" + mime + ")"
+	}
+	if url != "" {
+		line += " - " + url
+	}
+	b.WriteString(line + "\n")
 }
 
 func writeRow(b *strings.Builder, field, value string) {

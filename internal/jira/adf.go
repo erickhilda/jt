@@ -78,8 +78,12 @@ func (c *converter) renderNode(node ADFNode, depth int, index int) {
 	case "rule":
 		c.buf.WriteString("---\n\n")
 	case "mediaSingle", "mediaGroup":
-		// Media nodes contain media children; skip gracefully.
+		// Wrappers around one or more media children; each child renders
+		// itself (and its own trailing blank line) via the "media" case.
 		c.renderNodes(node.Content, depth)
+	case "media":
+		c.buf.WriteString(mediaMarkdown(node))
+		c.buf.WriteString("\n\n")
 	default:
 		// Unknown block-level node: try to render children.
 		if len(node.Content) > 0 {
@@ -114,6 +118,8 @@ func (c *converter) renderInline(node ADFNode, depth int) {
 		if shortName != "" {
 			c.buf.WriteString(shortName)
 		}
+	case "media", "mediaInline":
+		c.buf.WriteString(mediaMarkdown(node))
 	case "hardBreak":
 		c.buf.WriteString("  \n")
 	case "inlineCard":
@@ -134,6 +140,31 @@ func (c *converter) renderInline(node ADFNode, depth int) {
 			c.buf.WriteString(node.Text)
 		}
 	}
+}
+
+// mediaMarkdown renders an ADF media node as a markdown image reference so an
+// embedded image is never silently dropped. External media carry a direct URL;
+// file/link media reference an attachment by filename (the node's alt text),
+// which the document's "Attachments" section maps to a download URL. When no
+// filename is available the media id is used so the reference stays traceable.
+func mediaMarkdown(node ADFNode) string {
+	alt := attrStr(node.Attrs, "alt")
+	label := alt
+	if label == "" {
+		label = "image"
+	}
+
+	if attrStr(node.Attrs, "type") == "external" {
+		if url := attrStr(node.Attrs, "url"); url != "" {
+			return "![" + label + "](" + url + ")"
+		}
+	}
+
+	src := alt
+	if src == "" {
+		src = attrStr(node.Attrs, "id")
+	}
+	return "![" + label + "](" + src + ")"
 }
 
 func applyMarks(text string, marks []ADFMark) string {

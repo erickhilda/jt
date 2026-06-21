@@ -128,7 +128,7 @@ token_storage: keyring         # or "file" if keyring unavailable
   - Code blocks (with language)
   - Tables
   - Mentions (@user)
-  - Links, images (download inline images to `~/.jt/attachments/`) — **partial: media nodes handled gracefully but inline download not yet implemented**
+  - Links, images (media nodes -> markdown image refs + an `## Attachments` section, Phase 9) — **Tier 1 done; inline local download (Tier 2) deferred**
   - Panels (info/warning/error → blockquotes with prefix)
 
 **Local notes preservation:**
@@ -210,6 +210,25 @@ the ADF-to-markdown converter (`jira.RenderADF`).
 - [x] `renderer.RenderPage` — metadata table + `## Content` (ADF body reused via `jira.RenderADF`)
 - [x] `jt page <id | url>` — numeric ID or page URL, reuses the Jira token, `--dry-run`, My Notes preservation, `~/.jt/pages/<space>__<id>__<slug>.md` (`pages_dir`)
 - [ ] Deferred (v2): child-page expansion, page comments, attachments/labels, `jt page view/open/path/list`, CQL search, sync/diff for pages, scoped-token `jt auth confluence`
+
+### Phase 9 — Image / attachment handling (Tier 1) [DONE]
+
+**Goal:** stop silently dropping embedded images. Render media nodes as markdown
+image references and list every attachment with its download URL, for **Jira tickets
+and Confluence pages**. Pure markdown — no binaries written (Tier 1).
+
+Root cause was a missing `media` case in the shared ADF converter: images fell
+through to `default` and emitted nothing.
+
+- [x] `internal/jira/adf.go` — `media` / `mediaInline` rendering via `mediaMarkdown`
+  (external -> `![alt](url)`; file -> `![alt](filename)`, `![image](<id>)` fallback)
+- [x] Jira `## Attachments` — `Attachment` field (free in the existing fetch) +
+  `RenderIssue` section
+- [x] Confluence `## Attachments` — `GetPageAttachments` (paginated) + `RenderPage`
+  section, relative `downloadLink` resolved to absolute via `absURL`
+- [ ] Deferred (Tier 2): opt-in `--assets` to download images into `<key>_assets/`
+  and rewrite refs to relative paths (self-contained, offline, multimodal); Bitbucket
+  PR image download
 
 ---
 

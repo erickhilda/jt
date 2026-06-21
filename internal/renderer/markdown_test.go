@@ -57,6 +57,37 @@ func TestRenderIssueFullFields(t *testing.T) {
 	}
 }
 
+func TestRenderIssueAttachments(t *testing.T) {
+	issue := &jira.Issue{
+		Key: "PROJ-200",
+		Fields: jira.IssueFields{
+			Summary: "Ticket with screenshots",
+			Attachment: []jira.Attachment{
+				{Filename: "screen.png", MimeType: "image/png", Content: "https://acme.atlassian.net/rest/api/3/attachment/content/42"},
+				{Filename: "log.txt", MimeType: "text/plain", Content: "https://acme.atlassian.net/rest/api/3/attachment/content/43"},
+			},
+		},
+	}
+
+	got := RenderIssue(issue)
+	for _, want := range []string{
+		"## Attachments",
+		"- screen.png (image/png) - https://acme.atlassian.net/rest/api/3/attachment/content/42",
+		"- log.txt (text/plain) - https://acme.atlassian.net/rest/api/3/attachment/content/43",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("output missing %q\nGot:\n%s", want, got)
+		}
+	}
+}
+
+func TestRenderIssueNoAttachmentsSection(t *testing.T) {
+	issue := &jira.Issue{Key: "PROJ-201", Fields: jira.IssueFields{Summary: "No files"}}
+	if strings.Contains(RenderIssue(issue), "## Attachments") {
+		t.Error("expected no Attachments section when there are no attachments")
+	}
+}
+
 func TestRenderIssueNilAssignee(t *testing.T) {
 	issue := &jira.Issue{
 		Key: "TEST-1",

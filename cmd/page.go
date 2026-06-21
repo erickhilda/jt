@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
@@ -71,7 +72,13 @@ func runPage(cmd *cobra.Command, args []string) error {
 	}
 	webURL := pageWebURL(cfg.Instance, page)
 
-	content := renderer.RenderPage(page, spaceKey, webURL)
+	// Attachments are secondary: a failure here should not block saving the page.
+	attachments, aerr := client.GetPageAttachments(id)
+	if aerr != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not fetch attachments for page %s: %v\n", id, aerr)
+	}
+
+	content := renderer.RenderPage(page, spaceKey, webURL, attachments)
 
 	pagesDir := cfg.PagesDirOrDefault()
 	key := pageFileKey(spaceKey, page.ID, page.Title)

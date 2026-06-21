@@ -38,3 +38,22 @@ type Links struct {
 	WebUI string `json:"webui"`
 	Base  string `json:"base"`
 }
+
+// Attachment is a file attached to a Confluence page. DownloadLink is relative
+// to the site (e.g. /download/attachments/...); the renderer resolves it to an
+// absolute URL against the page's link base.
+type Attachment struct {
+	ID           string `json:"id"`
+	Title        string `json:"title"`
+	MediaType    string `json:"mediaType"`
+	FileSize     int    `json:"fileSize"`
+	DownloadLink string `json:"downloadLink"`
+}
+
+// attachmentList is one page of the v2 attachments listing.
+type attachmentList struct {
+	Results []Attachment `json:"results"`
+	Links   struct {
+		Next string `json:"next"`
+	} `json:"_links"`
+}

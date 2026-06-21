@@ -44,6 +44,18 @@ type IssueFields struct {
 	Subtasks    []Subtask    `json:"subtasks"`
 	IssueLinks  []IssueLink  `json:"issuelinks"`
 	Parent      *ParentIssue `json:"parent"`
+	Attachment  []Attachment `json:"attachment"`
+}
+
+// Attachment is a file attached to a Jira issue. Content is an authenticated
+// download URL (/rest/api/3/attachment/content/{id}).
+type Attachment struct {
+	ID       string `json:"id"`
+	Filename string `json:"filename"`
+	MimeType string `json:"mimeType"`
+	Content  string `json:"content"`
+	Size     int    `json:"size"`
+	Created  string `json:"created"`
 }
 
 // Status represents the issue status.

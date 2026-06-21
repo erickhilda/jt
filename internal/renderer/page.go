@@ -16,7 +16,9 @@ import (
 //
 // spaceKey and webURL are resolved by the caller (the v2 API returns a numeric
 // space id and relative links); both are optional and rendered as "-" when empty.
-func RenderPage(p *confluence.Page, spaceKey, webURL string) string {
+// attachments may be nil; when present they are listed in an "## Attachments"
+// section with download URLs resolved against the page's link base.
+func RenderPage(p *confluence.Page, spaceKey, webURL string, attachments []confluence.Attachment) string {
 	var b strings.Builder
 
 	now := time.Now().UTC().Format(time.RFC3339)
@@ -46,7 +48,37 @@ func RenderPage(p *confluence.Page, spaceKey, webURL string) string {
 		b.WriteString("*No content.*\n\n")
 	}
 
+	// Attachments. Inline images in the body reference these by filename; this
+	// section maps each filename to its absolute download URL.
+	if len(attachments) > 0 {
+		b.WriteString("## Attachments\n\n")
+		for _, att := range attachments {
+			writeAttachment(&b, att.Title, att.MediaType, absURL(p.Links.Base, att.DownloadLink))
+		}
+		b.WriteString("\n")
+	}
+
 	return strings.TrimRight(b.String(), "\n") + "\n"
+}
+
+// absURL resolves a possibly-relative Confluence link against a base such as
+// "https://acme.atlassian.net/wiki". Absolute links are returned unchanged; a
+// leading "/wiki" on the link is de-duplicated against a "/wiki"-suffixed base.
+func absURL(base, link string) string {
+	if link == "" {
+		return ""
+	}
+	if strings.HasPrefix(link, "http://") || strings.HasPrefix(link, "https://") {
+		return link
+	}
+	base = strings.TrimRight(base, "/")
+	if base == "" {
+		return link
+	}
+	if strings.HasPrefix(link, "/wiki/") {
+		base = strings.TrimSuffix(base, "/wiki")
+	}
+	return base + link
 }
 
 // renderPageBody converts an ADF document (encoded as a JSON string by the

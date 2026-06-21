@@ -452,6 +452,86 @@ func TestRenderADFBlockquote(t *testing.T) {
 	}
 }
 
+func TestRenderADFMediaFileWithAlt(t *testing.T) {
+	doc := &ADFDoc{
+		Type:    "doc",
+		Version: 1,
+		Content: []ADFNode{
+			{Type: "paragraph", Content: []ADFNode{{Type: "text", Text: "Before"}}},
+			{
+				Type: "mediaSingle",
+				Content: []ADFNode{
+					{Type: "media", Attrs: map[string]any{"type": "file", "id": "uuid-1", "alt": "diagram.png"}},
+				},
+			},
+			{Type: "paragraph", Content: []ADFNode{{Type: "text", Text: "After"}}},
+		},
+	}
+	want := "Before\n\n![diagram.png](diagram.png)\n\nAfter"
+	if got := RenderADF(doc); got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestRenderADFMediaFileNoAlt(t *testing.T) {
+	doc := &ADFDoc{
+		Type:    "doc",
+		Version: 1,
+		Content: []ADFNode{
+			{
+				Type: "mediaSingle",
+				Content: []ADFNode{
+					{Type: "media", Attrs: map[string]any{"type": "file", "id": "uuid-2"}},
+				},
+			},
+		},
+	}
+	// No alt -> generic label, media id as the (traceable) reference target.
+	want := "![image](uuid-2)"
+	if got := RenderADF(doc); got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestRenderADFMediaExternal(t *testing.T) {
+	doc := &ADFDoc{
+		Type:    "doc",
+		Version: 1,
+		Content: []ADFNode{
+			{
+				Type: "mediaSingle",
+				Content: []ADFNode{
+					{Type: "media", Attrs: map[string]any{"type": "external", "url": "https://example.com/a.png", "alt": "logo"}},
+				},
+			},
+		},
+	}
+	want := "![logo](https://example.com/a.png)"
+	if got := RenderADF(doc); got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestRenderADFMediaInline(t *testing.T) {
+	doc := &ADFDoc{
+		Type:    "doc",
+		Version: 1,
+		Content: []ADFNode{
+			{
+				Type: "paragraph",
+				Content: []ADFNode{
+					{Type: "text", Text: "see "},
+					{Type: "mediaInline", Attrs: map[string]any{"type": "file", "id": "uuid-3", "alt": "icon.svg"}},
+				},
+			},
+		},
+	}
+	want := "see ![icon.svg](icon.svg)"
+	if got := RenderADF(doc); got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
 func TestRenderADFUnknownNode(t *testing.T) {
 	doc := &ADFDoc{
 		Type:    "doc",

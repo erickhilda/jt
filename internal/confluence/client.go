@@ -49,6 +49,26 @@ func (c *Client) GetPage(id string) (*Page, error) {
 	return &p, nil
 }
 
+// GetPageAttachments lists all attachments for a page, following pagination.
+// Returns an empty slice (not an error) when the page has no attachments.
+func (c *Client) GetPageAttachments(id string) ([]Attachment, error) {
+	path := apiPrefix + "/pages/" + url.PathEscape(id) + "/attachments?limit=250"
+	var all []Attachment
+	for path != "" {
+		body, err := c.getJSON(path)
+		if err != nil {
+			return nil, err
+		}
+		var list attachmentList
+		if err := json.Unmarshal(body, &list); err != nil {
+			return nil, fmt.Errorf("decoding attachments: %w", err)
+		}
+		all = append(all, list.Results...)
+		path = list.Links.Next // relative URL for the next page, or "" when done
+	}
+	return all, nil
+}
+
 // getJSON performs a GET expecting JSON, returning the body after status checks.
 // pathOrURL may be a path (prefixed with baseURL) or a full URL (pagination next).
 func (c *Client) getJSON(pathOrURL string) ([]byte, error) {

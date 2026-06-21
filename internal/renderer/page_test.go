@@ -20,7 +20,7 @@ func TestRenderPage(t *testing.T) {
 		{"type":"paragraph","content":[{"type":"text","text":"Hello world"}]}
 	]}`
 
-	out := RenderPage(p, "ENG", "https://acme.atlassian.net/wiki/spaces/ENG/pages/12345/Design+Doc")
+	out := RenderPage(p, "ENG", "https://acme.atlassian.net/wiki/spaces/ENG/pages/12345/Design+Doc", nil)
 
 	for _, want := range []string{
 		"<!-- jt:meta page=12345 ",
@@ -39,9 +39,44 @@ func TestRenderPage(t *testing.T) {
 	}
 }
 
+func TestRenderPageAttachments(t *testing.T) {
+	p := &confluence.Page{ID: "12345", Title: "Doc", Status: "current"}
+	p.Links.Base = "https://acme.atlassian.net/wiki"
+	atts := []confluence.Attachment{
+		{Title: "arch.png", MediaType: "image/png", DownloadLink: "/download/attachments/12345/arch.png?version=1"},
+		{Title: "ext.png", MediaType: "image/png", DownloadLink: "https://cdn.example.com/ext.png"},
+	}
+
+	out := RenderPage(p, "ENG", "", atts)
+	for _, want := range []string{
+		"## Attachments",
+		"- arch.png (image/png) - https://acme.atlassian.net/wiki/download/attachments/12345/arch.png?version=1",
+		"- ext.png (image/png) - https://cdn.example.com/ext.png",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q\n---\n%s", want, out)
+		}
+	}
+}
+
+func TestAbsURL(t *testing.T) {
+	cases := []struct{ base, link, want string }{
+		{"https://acme.atlassian.net/wiki", "/download/x.png", "https://acme.atlassian.net/wiki/download/x.png"},
+		{"https://acme.atlassian.net/wiki", "/wiki/download/x.png", "https://acme.atlassian.net/wiki/download/x.png"},
+		{"https://acme.atlassian.net/wiki", "https://cdn/x.png", "https://cdn/x.png"},
+		{"", "/download/x.png", "/download/x.png"},
+		{"https://acme.atlassian.net/wiki", "", ""},
+	}
+	for _, c := range cases {
+		if got := absURL(c.base, c.link); got != c.want {
+			t.Errorf("absURL(%q,%q) = %q, want %q", c.base, c.link, got, c.want)
+		}
+	}
+}
+
 func TestRenderPageEmptyBody(t *testing.T) {
 	p := &confluence.Page{ID: "1", Title: "Empty", Status: "current"}
-	out := RenderPage(p, "", "")
+	out := RenderPage(p, "", "", nil)
 	if !strings.Contains(out, "*No content.*") {
 		t.Errorf("expected empty-body placeholder, got:\n%s", out)
 	}
@@ -54,7 +89,7 @@ func TestRenderPageEmptyBody(t *testing.T) {
 func TestRenderPageInvalidBodyFallsBack(t *testing.T) {
 	p := &confluence.Page{ID: "1", Title: "Bad", Status: "current"}
 	p.Body.AtlasDocFormat.Value = "not valid json {"
-	out := RenderPage(p, "ENG", "")
+	out := RenderPage(p, "ENG", "", nil)
 	if !strings.Contains(out, "not valid json {") {
 		t.Errorf("expected raw body fallback, got:\n%s", out)
 	}
