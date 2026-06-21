@@ -74,21 +74,9 @@ func runPush(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("fetching remote ticket: %w", err)
 	}
 
-	// Conflict check: warn if Jira was updated after last pull.
-	if issue.Fields.Updated != "" {
-		updated, parseErr := time.Parse(time.RFC3339, issue.Fields.Updated)
-		if parseErr == nil && updated.After(meta.Fetched) {
-			return fmt.Errorf(
-				"ticket %s was updated on Jira after your last pull\n"+
-					"  remote updated: %s\n"+
-					"  local fetched:  %s\n"+
-					"Run 'jt pull %s' or 'jt sync' first, then re-apply your edits",
-				ticketKey,
-				updated.Format(time.RFC3339),
-				meta.Fetched.Format(time.RFC3339),
-				ticketKey,
-			)
-		}
+	// Conflict check: refuse to push if Jira was updated after last pull.
+	if err := checkStale(ticketKey, issue.Fields.Updated, meta.Fetched); err != nil {
+		return err
 	}
 
 	// Convert remote description ADF → Markdown for section comparison.
@@ -174,4 +162,59 @@ func parseSectionNames(flag string) []string {
 func sectionBody(section, heading string) string {
 	after := strings.TrimPrefix(section, heading)
 	return strings.TrimLeft(after, "\n")
+}
+
+// jiraTimeLayouts lists the timestamp formats the Jira Cloud REST API is known
+// to emit for fields like "updated". Jira uses a numeric timezone offset
+// without a colon (e.g. "+0700"), which is NOT valid RFC3339, so a plain
+// time.Parse(time.RFC3339, ...) fails on real responses. RFC3339 variants are
+// kept as fallbacks for safety.
+var jiraTimeLayouts = []string{
+	"2006-01-02T15:04:05.000-0700",
+	"2006-01-02T15:04:05.000Z",
+	"2006-01-02T15:04:05-0700",
+	"2006-01-02T15:04:05Z",
+	time.RFC3339,
+}
+
+// parseJiraTime parses a Jira Cloud timestamp, trying each known layout.
+func parseJiraTime(s string) (time.Time, error) {
+	for _, layout := range jiraTimeLayouts {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("unrecognized timestamp format: %q", s)
+}
+
+// checkStale reports a conflict when the remote ticket was updated after the
+// local pull, so the user is told to re-pull instead of clobbering remote
+// changes. An empty remote timestamp is treated as "no info, allow". An
+// unparseable timestamp fails closed (refuses the push) rather than silently
+// allowing an overwrite.
+func checkStale(ticketKey, remoteUpdated string, localFetched time.Time) error {
+	if remoteUpdated == "" {
+		return nil
+	}
+	updated, err := parseJiraTime(remoteUpdated)
+	if err != nil {
+		return fmt.Errorf(
+			"could not parse remote update time %q for %s; refusing to push to avoid overwriting remote changes\n"+
+				"Run 'jt pull %s' first, then re-apply your edits",
+			remoteUpdated, ticketKey, ticketKey,
+		)
+	}
+	if updated.After(localFetched) {
+		return fmt.Errorf(
+			"ticket %s was updated on Jira after your last pull\n"+
+				"  remote updated: %s\n"+
+				"  local fetched:  %s\n"+
+				"Run 'jt pull %s' or 'jt sync' first, then re-apply your edits",
+			ticketKey,
+			updated.Format(time.RFC3339),
+			localFetched.Format(time.RFC3339),
+			ticketKey,
+		)
+	}
+	return nil
 }
