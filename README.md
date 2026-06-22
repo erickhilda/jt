@@ -27,12 +27,6 @@ To install to a custom directory or pin a version:
 curl -sSfL https://raw.githubusercontent.com/erickhilda/jt/master/install.sh | sh -s -- -d ~/.local/bin -v v0.1.0
 ```
 
-### Homebrew (macOS/Linux)
-
-```bash
-brew install erickhilda/tap/jt
-```
-
 ### Binary download
 
 Download a prebuilt binary from the [GitHub Releases](https://github.com/erickhilda/jt/releases) page.
