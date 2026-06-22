@@ -60,6 +60,13 @@ As a user, I want to authenticate via OAuth2 so that...
 - blocks PROJ-130: Protected API endpoints
 - is blocked by PROJ-110: User model migration
 
+## Pull Requests (1)
+
+- [MERGED] [PROJ-123: implement OAuth2 flow](https://bitbucket.org/acme/repo/pull-requests/42) (#42)
+  - Branch: feature/PROJ-123 -> develop
+  - Author: Alice
+  - Approved by: Bob
+
 ## Comments (5)
 
 ### Alice — 2026-02-10 09:15

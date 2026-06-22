@@ -24,7 +24,7 @@ var configSetCmd = &cobra.Command{
 	Use:   "set <key> <value>",
 	Short: "Update a configuration setting",
 	Long: `Valid keys: instance, email, default_project, tickets_dir, fetch_comments,
-token, bitbucket_workspace, prs_dir, bitbucket_token, pages_dir
+fetch_pull_requests, token, bitbucket_workspace, prs_dir, bitbucket_token, pages_dir
 
 Examples:
   jt config set instance https://myorg.atlassian.net
@@ -67,6 +67,7 @@ func runConfigShow(cmd *cobra.Command, args []string) error {
 	fmt.Printf("tickets_dir:         %s\n", cfg.TicketsDir)
 	fmt.Printf("token_storage:       %s\n", cfg.TokenStorage)
 	fmt.Printf("fetch_comments:      %t\n", cfg.ShouldFetchComments())
+	fmt.Printf("fetch_pull_requests: %t\n", cfg.ShouldFetchPullRequests())
 	fmt.Printf("token:               %s\n", token)
 	fmt.Printf("bitbucket_workspace: %s\n", cfg.BitbucketWorkspace)
 	fmt.Printf("prs_dir:             %s\n", cfg.PRsDirOrDefault())
@@ -109,6 +110,12 @@ func runConfigSet(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("fetch_comments must be true or false, got %q", value)
 		}
 		cfg.FetchComments = &b
+	case "fetch_pull_requests":
+		b, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("fetch_pull_requests must be true or false, got %q", value)
+		}
+		cfg.FetchPullRequests = &b
 	case "bitbucket_workspace":
 		cfg.BitbucketWorkspace = value
 	case "prs_dir":
@@ -116,7 +123,7 @@ func runConfigSet(cmd *cobra.Command, args []string) error {
 	case "pages_dir":
 		cfg.PagesDir = value
 	default:
-		return fmt.Errorf("unknown key %q; valid keys: instance, email, default_project, tickets_dir, fetch_comments, token, bitbucket_workspace, prs_dir, bitbucket_token, pages_dir", key)
+		return fmt.Errorf("unknown key %q; valid keys: instance, email, default_project, tickets_dir, fetch_comments, fetch_pull_requests, token, bitbucket_workspace, prs_dir, bitbucket_token, pages_dir", key)
 	}
 
 	if err := config.Save(cfg); err != nil {

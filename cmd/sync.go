@@ -140,11 +140,22 @@ func runSync(cmd *cobra.Command, _ []string) error {
 			continue
 		}
 
+		// Fetch development-panel pull requests (non-fatal; see runPull).
+		prFetched := false
+		if cfg.ShouldFetchPullRequests() {
+			if prs, prErr := client.GetPullRequests(issue.ID); prErr != nil {
+				fmt.Printf("  %s: warning: could not fetch pull requests: %v\n", t.Key, prErr)
+			} else {
+				issue.PullRequests = prs
+				prFetched = true
+			}
+		}
+
 		content := renderer.RenderIssue(issue)
 
-		// Preserve local notes (and Comments when we didn't fetch them).
+		// Preserve local notes (and Comments/Pull Requests when we didn't fetch them).
 		if existing, loadErr := store.Load(cfg.TicketsDir, t.Key); loadErr == nil {
-			content = preserveSections(existing, content, fetchComments)
+			content = preserveSections(existing, content, fetchComments, prFetched)
 		}
 
 		if err := store.Save(cfg.TicketsDir, t.Key, content); err != nil {

@@ -111,6 +111,7 @@ func (c *Client) GetIssueWithFields(key, fieldsQuery string) (*Issue, error) {
 	}
 
 	issue := &Issue{
+		ID:     raw.ID,
 		Key:    raw.Key,
 		Fields: fields,
 	}
@@ -281,6 +282,7 @@ func decodeIssue(rawIssue json.RawMessage, fallbackNames map[string]string) (*Is
 	}
 
 	issue := &Issue{
+		ID:     raw.ID,
 		Key:    raw.Key,
 		Fields: fields,
 	}
@@ -327,6 +329,113 @@ func (c *Client) UpdateDescription(key string, doc *ADFDoc) error {
 	default:
 		return &APIError{StatusCode: statusCode, Message: fmt.Sprintf("unexpected status %d", statusCode)}
 	}
+}
+
+// GetPullRequests returns the pull requests linked to an issue via Jira's
+// development panel, using the dev-status API. It first queries the summary
+// endpoint to discover which application types (bitbucket, github, ...) host
+// PRs for this issue, then fetches the detail for each. This avoids hardcoding
+// a provider and skips the detail round-trip when there are no linked PRs.
+//
+// issueID is the numeric issue id (Issue.ID), not the issue key. The dev-status
+// API is unofficial (it backs the Jira UI) and may be unavailable on some
+// instances; callers should treat errors as non-fatal.
+func (c *Client) GetPullRequests(issueID string) ([]PullRequest, error) {
+	if issueID == "" {
+		return nil, nil
+	}
+
+	appTypes, err := c.devStatusPRAppTypes(issueID)
+	if err != nil {
+		return nil, err
+	}
+
+	var prs []PullRequest
+	for _, appType := range appTypes {
+		detail, err := c.devStatusPRDetail(issueID, appType)
+		if err != nil {
+			return nil, err
+		}
+		for i := range detail {
+			detail[i].AppType = appType
+		}
+		prs = append(prs, detail...)
+	}
+	return prs, nil
+}
+
+// devStatusPRAppTypes calls the dev-status summary endpoint and returns the
+// application types that have at least one pull request for the issue.
+func (c *Client) devStatusPRAppTypes(issueID string) ([]string, error) {
+	params := url.Values{}
+	params.Set("issueId", issueID)
+	resp, err := c.do(http.MethodGet, "/rest/dev-status/latest/issue/summary?"+params.Encode(), nil)
+	if err != nil {
+		return nil, err
+	}
+	data, statusCode, err := readAndClose(resp)
+	if err != nil {
+		return nil, err
+	}
+	switch statusCode {
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return nil, ErrUnauthorized
+	case http.StatusNotFound:
+		return nil, ErrNotFound
+	}
+	if statusCode != http.StatusOK {
+		return nil, &APIError{StatusCode: statusCode, Message: string(data)}
+	}
+
+	var summary devStatusSummary
+	if err := json.Unmarshal(data, &summary); err != nil {
+		return nil, fmt.Errorf("decoding dev-status summary: %w", err)
+	}
+	if summary.Summary.PullRequest.Overall.Count == 0 {
+		return nil, nil
+	}
+	var appTypes []string
+	for appType, info := range summary.Summary.PullRequest.ByInstanceType {
+		if info.Count > 0 {
+			appTypes = append(appTypes, appType)
+		}
+	}
+	return appTypes, nil
+}
+
+// devStatusPRDetail fetches the pull-request detail for one application type.
+func (c *Client) devStatusPRDetail(issueID, appType string) ([]PullRequest, error) {
+	params := url.Values{}
+	params.Set("issueId", issueID)
+	params.Set("applicationType", appType)
+	params.Set("dataType", "pullrequest")
+	resp, err := c.do(http.MethodGet, "/rest/dev-status/latest/issue/detail?"+params.Encode(), nil)
+	if err != nil {
+		return nil, err
+	}
+	data, statusCode, err := readAndClose(resp)
+	if err != nil {
+		return nil, err
+	}
+	switch statusCode {
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return nil, ErrUnauthorized
+	case http.StatusNotFound:
+		return nil, ErrNotFound
+	}
+	if statusCode != http.StatusOK {
+		return nil, &APIError{StatusCode: statusCode, Message: string(data)}
+	}
+
+	var detail devStatusDetail
+	if err := json.Unmarshal(data, &detail); err != nil {
+		return nil, fmt.Errorf("decoding dev-status detail: %w", err)
+	}
+	var prs []PullRequest
+	for _, d := range detail.Detail {
+		prs = append(prs, d.PullRequests...)
+	}
+	return prs, nil
 }
 
 // readAndClose reads the full body and closes it, returning data and status code.

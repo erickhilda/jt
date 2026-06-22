@@ -68,6 +68,10 @@ func runDiff(cmd *cobra.Command, args []string) error {
 		localContent = store.RemoveSection(localContent, "## Comments")
 	}
 
+	// diff does not fetch development-panel pull requests, so strip any local
+	// "## Pull Requests" block to keep both sides symmetric (no phantom diff).
+	localContent = store.RemoveSection(localContent, "## Pull Requests")
+
 	// Render fresh content, preserving local notes.
 	remoteContent := renderer.RenderIssue(issue)
 	remoteContent = preserveNotes(localContent, remoteContent)

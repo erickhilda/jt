@@ -34,6 +34,10 @@ type Config struct {
 	// FetchComments controls whether pull/diff/sync request and render comments.
 	// Pointer so "field absent" means "default true" (backward compatible).
 	FetchComments *bool `yaml:"fetch_comments,omitempty"`
+	// FetchPullRequests controls whether `jt pull` also fetches the development
+	// panel's linked pull requests (via the dev-status API) and renders a
+	// "## Pull Requests" section. Pointer so absent means "default true".
+	FetchPullRequests *bool `yaml:"fetch_pull_requests,omitempty"`
 	// BitbucketWorkspace is the default workspace for `jt pr <repo>/<id>` refs.
 	BitbucketWorkspace string `yaml:"bitbucket_workspace,omitempty"`
 	// PRsDir is where `jt pr` saves pull-request markdown (default ~/.jt/prs).
@@ -67,6 +71,15 @@ func (c *Config) ShouldFetchComments() bool {
 		return true
 	}
 	return *c.FetchComments
+}
+
+// ShouldFetchPullRequests returns whether `jt pull` should fetch and render the
+// development panel's linked pull requests. Default (nil) is true.
+func (c *Config) ShouldFetchPullRequests() bool {
+	if c == nil || c.FetchPullRequests == nil {
+		return true
+	}
+	return *c.FetchPullRequests
 }
 
 // SetConfigDir overrides the config directory (for testing).

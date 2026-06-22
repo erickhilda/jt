@@ -116,6 +116,11 @@ func RenderIssue(issue *jira.Issue) string {
 		b.WriteString("\n")
 	}
 
+	// Pull Requests (development panel). Linked via the dev-status API.
+	if len(issue.PullRequests) > 0 {
+		writePullRequests(&b, issue.PullRequests)
+	}
+
 	// Comments.
 	if issue.Fields.Comment != nil && issue.Fields.Comment.Total > 0 {
 		fmt.Fprintf(&b, "## Comments (%d)\n\n", issue.Fields.Comment.Total)
@@ -163,6 +168,57 @@ func RenderComments(issue *jira.Issue) string {
 		b.WriteString("## Comments (0)\n\n*No comments.*\n\n")
 	}
 	return strings.TrimRight(b.String(), "\n") + "\n"
+}
+
+// writePullRequests renders the "## Pull Requests" section: one bullet per PR
+// with its status, title and link, plus branch and author detail when present.
+func writePullRequests(b *strings.Builder, prs []jira.PullRequest) {
+	fmt.Fprintf(b, "## Pull Requests (%d)\n\n", len(prs))
+	for _, pr := range prs {
+		status := pr.Status
+		if status == "" {
+			status = "UNKNOWN"
+		}
+		title := pr.Name
+		if title == "" {
+			title = pr.ID
+		}
+		if pr.URL != "" {
+			fmt.Fprintf(b, "- [%s] [%s](%s)", status, title, pr.URL)
+		} else {
+			fmt.Fprintf(b, "- [%s] %s", status, title)
+		}
+		if pr.ID != "" && pr.ID != title {
+			fmt.Fprintf(b, " (%s)", pr.ID)
+		}
+		b.WriteString("\n")
+
+		if pr.Source != nil && pr.Source.Branch != "" {
+			dest := ""
+			if pr.Destination != nil && pr.Destination.Branch != "" {
+				dest = " -> " + pr.Destination.Branch
+			}
+			fmt.Fprintf(b, "  - Branch: %s%s\n", pr.Source.Branch, dest)
+		}
+		if pr.Author != nil && pr.Author.Name != "" {
+			fmt.Fprintf(b, "  - Author: %s\n", pr.Author.Name)
+		}
+		if names := approvedReviewers(pr.Reviewers); names != "" {
+			fmt.Fprintf(b, "  - Approved by: %s\n", names)
+		}
+	}
+	b.WriteString("\n")
+}
+
+// approvedReviewers returns a comma-joined list of reviewers that approved.
+func approvedReviewers(reviewers []jira.DevUser) string {
+	var approved []string
+	for _, r := range reviewers {
+		if r.Approved && r.Name != "" {
+			approved = append(approved, r.Name)
+		}
+	}
+	return strings.Join(approved, ", ")
 }
 
 // writeAttachment renders one attachment list item as "- name (mime) - url",

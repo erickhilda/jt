@@ -174,6 +174,52 @@ func TestRenderIssueLinkedIssues(t *testing.T) {
 	}
 }
 
+func TestRenderIssuePullRequests(t *testing.T) {
+	issue := &jira.Issue{
+		Key: "TEST-PR",
+		Fields: jira.IssueFields{
+			Summary: "With PRs",
+			Created: "2026-01-01T00:00:00Z",
+			Updated: "2026-01-01T00:00:00Z",
+		},
+		PullRequests: []jira.PullRequest{
+			{
+				ID:          "#42",
+				Name:        "Add feature",
+				URL:         "https://bitbucket.org/x/repo/pull-requests/42",
+				Status:      "MERGED",
+				Author:      &jira.DevUser{Name: "alice"},
+				Source:      &jira.DevBranch{Branch: "feature/TEST-PR"},
+				Destination: &jira.DevBranch{Branch: "develop"},
+				Reviewers:   []jira.DevUser{{Name: "bob", Approved: true}, {Name: "carol", Approved: false}},
+			},
+		},
+	}
+
+	got := RenderIssue(issue)
+	for _, want := range []string{
+		"## Pull Requests (1)",
+		"- [MERGED] [Add feature](https://bitbucket.org/x/repo/pull-requests/42) (#42)",
+		"  - Branch: feature/TEST-PR -> develop",
+		"  - Author: alice",
+		"  - Approved by: bob",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("expected %q in output, got:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "carol") {
+		t.Errorf("non-approving reviewer should not appear, got:\n%s", got)
+	}
+}
+
+func TestRenderIssueNoPullRequestsSection(t *testing.T) {
+	issue := &jira.Issue{Key: "PROJ-202", Fields: jira.IssueFields{Summary: "No PRs"}}
+	if strings.Contains(RenderIssue(issue), "## Pull Requests") {
+		t.Errorf("expected no Pull Requests section when none linked")
+	}
+}
+
 func TestRenderIssueComments(t *testing.T) {
 	issue := &jira.Issue{
 		Key: "TEST-9",

@@ -96,7 +96,7 @@ Display all configuration settings (token is masked).
 
 Update a single configuration value.
 
-Valid keys: `instance`, `email`, `default_project`, `tickets_dir`, `fetch_comments`, `token`, `bitbucket_workspace`, `prs_dir`, `bitbucket_token`.
+Valid keys: `instance`, `email`, `default_project`, `tickets_dir`, `fetch_comments`, `fetch_pull_requests`, `token`, `bitbucket_workspace`, `prs_dir`, `bitbucket_token`.
 
 ```bash
 jt config set instance https://myorg.atlassian.net
@@ -215,6 +215,7 @@ fetch_comments: true
 | `tickets_dir` | Directory for saved tickets (default: `~/.jt/tickets`) |
 | `token_storage` | `keyring` (system keyring) or `file` (`~/.jt/credentials`, 0600) |
 | `fetch_comments` | Fetch and render the Comments section. Default `true`. Set `false` to skip comments on `pull`, `diff`, and `sync` (smaller payloads; existing `## Comments` blocks in local files are preserved). `jt pull --comments-only` overrides this and always refreshes comments. |
+| `fetch_pull_requests` | Fetch and render the development panel's linked pull requests (a `## Pull Requests` section) on `pull` and `sync`. Default `true`. Uses Jira's dev-status API, so PRs only appear when Jira is connected to your Git host (Bitbucket/GitHub) and the branch/commit/PR references the issue key. Failures are non-fatal: `pull` warns and keeps any existing `## Pull Requests` block. Set `false` to skip the lookup. |
 | `bitbucket_workspace` | Default Bitbucket workspace for `jt pr <repo>/<id>` references |
 | `prs_dir` | Directory for saved pull requests (default: `~/.jt/prs`) |
 | `pages_dir` | Directory for saved Confluence pages (default: `~/.jt/pages`) |
@@ -252,6 +253,13 @@ The ticket description converted from Atlassian Document Format to markdown.
 ## Linked Issues
 
 - blocks PROJ-130: Protected API endpoints
+
+## Pull Requests (1)
+
+- [MERGED] [PROJ-123: implement OAuth2 flow](https://bitbucket.org/acme/repo/pull-requests/42) (#42)
+  - Branch: feature/PROJ-123 -> develop
+  - Author: Alice
+  - Approved by: Bob
 
 ## Comments (2)
 

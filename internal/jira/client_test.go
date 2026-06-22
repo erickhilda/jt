@@ -121,6 +121,7 @@ func TestMyselfForbidden(t *testing.T) {
 
 // issueJSON is a realistic Jira issue response fixture for testing.
 const issueJSON = `{
+  "id": "10001",
   "key": "PROJ-123",
   "names": {
     "summary": "Summary",
@@ -199,6 +200,9 @@ func TestGetIssueSuccess(t *testing.T) {
 
 	if issue.Key != "PROJ-123" {
 		t.Errorf("Key = %q, want PROJ-123", issue.Key)
+	}
+	if issue.ID != "10001" {
+		t.Errorf("ID = %q, want 10001", issue.ID)
 	}
 	if issue.Fields.Summary != "Implement OAuth2 flow" {
 		t.Errorf("Summary = %q", issue.Fields.Summary)
@@ -530,5 +534,118 @@ func TestSearchIssuesServerError(t *testing.T) {
 	}
 	if apiErr.StatusCode != 500 {
 		t.Errorf("StatusCode = %d, want 500", apiErr.StatusCode)
+	}
+}
+
+// devStatusSummaryJSON reports one bitbucket PR for the issue.
+const devStatusSummaryJSON = `{
+  "summary": {
+    "pullrequest": {
+      "overall": {"count": 1},
+      "byInstanceType": {"bitbucket": {"count": 1, "name": "Bitbucket Cloud"}}
+    }
+  }
+}`
+
+const devStatusDetailJSON = `{
+  "errors": [],
+  "detail": [
+    {
+      "pullRequests": [
+        {
+          "id": "#42",
+          "name": "Add feature",
+          "url": "https://bitbucket.org/x/repo/pull-requests/42",
+          "status": "MERGED",
+          "author": {"name": "alice"},
+          "source": {"branch": "feature/PROJ-123"},
+          "destination": {"branch": "develop"},
+          "reviewers": [{"name": "bob", "approved": true}]
+        }
+      ]
+    }
+  ]
+}`
+
+func TestGetPullRequestsSuccess(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/rest/dev-status/latest/issue/summary":
+			if got := r.URL.Query().Get("issueId"); got != "10001" {
+				t.Errorf("summary issueId = %q, want 10001", got)
+			}
+			_, _ = w.Write([]byte(devStatusSummaryJSON))
+		case "/rest/dev-status/latest/issue/detail":
+			q := r.URL.Query()
+			if q.Get("applicationType") != "bitbucket" {
+				t.Errorf("applicationType = %q, want bitbucket", q.Get("applicationType"))
+			}
+			if q.Get("dataType") != "pullrequest" {
+				t.Errorf("dataType = %q, want pullrequest", q.Get("dataType"))
+			}
+			_, _ = w.Write([]byte(devStatusDetailJSON))
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test@example.com", "token123")
+	prs, err := client.GetPullRequests("10001")
+	if err != nil {
+		t.Fatalf("GetPullRequests: %v", err)
+	}
+	if len(prs) != 1 {
+		t.Fatalf("got %d PRs, want 1", len(prs))
+	}
+	pr := prs[0]
+	if pr.ID != "#42" || pr.Status != "MERGED" || pr.Name != "Add feature" {
+		t.Errorf("unexpected PR: %+v", pr)
+	}
+	if pr.AppType != "bitbucket" {
+		t.Errorf("AppType = %q, want bitbucket", pr.AppType)
+	}
+	if pr.Author == nil || pr.Author.Name != "alice" {
+		t.Errorf("expected author alice, got %+v", pr.Author)
+	}
+}
+
+func TestGetPullRequestsNoneSkipsDetail(t *testing.T) {
+	detailCalled := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/rest/dev-status/latest/issue/summary":
+			_, _ = w.Write([]byte(`{"summary":{"pullrequest":{"overall":{"count":0},"byInstanceType":{}}}}`))
+		case "/rest/dev-status/latest/issue/detail":
+			detailCalled = true
+		}
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test@example.com", "token123")
+	prs, err := client.GetPullRequests("10001")
+	if err != nil {
+		t.Fatalf("GetPullRequests: %v", err)
+	}
+	if len(prs) != 0 {
+		t.Errorf("got %d PRs, want 0", len(prs))
+	}
+	if detailCalled {
+		t.Error("detail endpoint should not be called when summary count is 0")
+	}
+}
+
+func TestGetPullRequestsEmptyIssueID(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("no request expected for empty issueID, got %s", r.URL.Path)
+	}))
+	defer srv.Close()
+
+	client := NewClient(srv.URL, "test@example.com", "token123")
+	prs, err := client.GetPullRequests("")
+	if err != nil || prs != nil {
+		t.Errorf("expected (nil, nil) for empty issueID, got (%v, %v)", prs, err)
 	}
 }

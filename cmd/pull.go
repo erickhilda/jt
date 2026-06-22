@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/erickhilda/jt/internal/config"
@@ -62,12 +63,26 @@ func runPull(cmd *cobra.Command, args []string) error {
 		return pullCommentsOnly(cfg, issue, canonicalKey, dryRun)
 	}
 
+	// Fetch development-panel pull requests via the dev-status API. This is an
+	// unofficial endpoint and may be unavailable, so treat failures as
+	// non-fatal: warn and fall back to preserving any existing PR section.
+	prFetched := false
+	if cfg.ShouldFetchPullRequests() {
+		prs, err := client.GetPullRequests(issue.ID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "warning: could not fetch linked pull requests for %s: %v\n", canonicalKey, err)
+		} else {
+			issue.PullRequests = prs
+			prFetched = true
+		}
+	}
+
 	content := renderer.RenderIssue(issue)
 
-	// Preserve existing "## My Notes" (and "## Comments" when we didn't fetch
-	// them) so local history survives re-pulls.
+	// Preserve existing "## My Notes" (and "## Comments"/"## Pull Requests" when
+	// we didn't fetch them) so local history survives re-pulls.
 	if existing, err := store.Load(cfg.TicketsDir, canonicalKey); err == nil {
-		content = preserveSections(existing, content, fetchComments)
+		content = preserveSections(existing, content, fetchComments, prFetched)
 	}
 
 	if dryRun {
@@ -95,9 +110,16 @@ func preserveNotes(oldContent, newContent string) string {
 // preserveSections preserves user-editable sections from oldContent when
 // rendering newContent. Always preserves "## My Notes". When fetchComments is
 // false the remote issue has no comments, so we also preserve any existing
-// "## Comments" block rather than dropping it from the file. Order: Comments
-// before Notes (matching how RenderIssue emits them).
-func preserveSections(oldContent, newContent string, fetchComments bool) string {
+// "## Comments" block rather than dropping it from the file. Likewise, when
+// prFetched is false (PR fetch disabled or failed) we keep any existing
+// "## Pull Requests" block instead of silently dropping it. Order: Pull
+// Requests before Comments before Notes (matching how RenderIssue emits them).
+func preserveSections(oldContent, newContent string, fetchComments, prFetched bool) string {
+	if !prFetched {
+		if prs := store.ExtractSection(oldContent, "## Pull Requests"); prs != "" {
+			newContent = strings.TrimRight(newContent, "\n") + "\n\n" + prs
+		}
+	}
 	if !fetchComments {
 		if comments := store.ExtractSection(oldContent, "## Comments"); comments != "" {
 			newContent = strings.TrimRight(newContent, "\n") + "\n\n" + comments
