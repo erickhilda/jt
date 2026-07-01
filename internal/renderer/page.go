@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/erickhilda/jt/internal/confluence"
-	"github.com/erickhilda/jt/internal/jira"
+	"github.com/erickhilda/atlit/internal/confluence"
+	"github.com/erickhilda/atlit/internal/jira"
 )
 
 // RenderPage produces a self-contained markdown document for a Confluence page,
@@ -22,7 +22,7 @@ func RenderPage(p *confluence.Page, spaceKey, webURL string, attachments []confl
 	var b strings.Builder
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	fmt.Fprintf(&b, "<!-- jt:meta page=%s fetched=%s -->\n", p.ID, now)
+	fmt.Fprintf(&b, "<!-- atlit:meta page=%s fetched=%s -->\n", p.ID, now)
 	fmt.Fprintf(&b, "# %s\n\n", p.Title)
 
 	// Metadata table.

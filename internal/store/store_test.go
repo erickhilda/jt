@@ -237,7 +237,7 @@ func TestLoadMissingFile(t *testing.T) {
 }
 
 func TestParseMetaValid(t *testing.T) {
-	content := "<!-- jt:meta ticket=PROJ-123 fetched=2026-02-17T10:30:00Z -->\n# PROJ-123: Title\n"
+	content := "<!-- atlit:meta ticket=PROJ-123 fetched=2026-02-17T10:30:00Z -->\n# PROJ-123: Title\n"
 	meta := ParseMeta(content)
 	if meta == nil {
 		t.Fatal("expected non-nil meta")
@@ -316,11 +316,59 @@ func TestListTicketsEmptyDir(t *testing.T) {
 }
 
 func TestListTicketsNonexistentDir(t *testing.T) {
-	tickets, err := ListTickets("/tmp/nonexistent-jt-test-dir-12345")
+	tickets, err := ListTickets("/tmp/nonexistent-atlit-test-dir-12345")
 	if err != nil {
 		t.Fatalf("ListTickets: %v", err)
 	}
 	if tickets != nil {
 		t.Errorf("expected nil tickets for nonexistent dir, got %v", tickets)
 	}
+}
+
+func TestUpgradeMarker(t *testing.T) {
+	t.Run("legacy marker is upgraded", func(t *testing.T) {
+		in := "<!-- jt:meta ticket=PROJ-1 fetched=2026-02-17T10:30:00Z -->\n# PROJ-1: Title\n"
+		want := "<!-- atlit:meta ticket=PROJ-1 fetched=2026-02-17T10:30:00Z -->\n# PROJ-1: Title\n"
+		got, changed := UpgradeMarker(in)
+		if !changed {
+			t.Fatal("expected changed=true for a legacy marker")
+		}
+		if got != want {
+			t.Errorf("UpgradeMarker = %q, want %q", got, want)
+		}
+		// Upgraded content must still parse.
+		if meta := ParseMeta(got); meta == nil || meta.Ticket != "PROJ-1" {
+			t.Errorf("upgraded content did not parse: %+v", meta)
+		}
+	})
+
+	t.Run("already-current marker is unchanged (idempotent)", func(t *testing.T) {
+		in := "<!-- atlit:meta page=12345 fetched=2026-02-17T10:30:00Z -->\n# Doc\n"
+		got, changed := UpgradeMarker(in)
+		if changed {
+			t.Error("expected changed=false for an already-current marker")
+		}
+		if got != in {
+			t.Errorf("content mutated: %q", got)
+		}
+	})
+
+	t.Run("no marker is unchanged", func(t *testing.T) {
+		in := "# Just a heading\n\nBody.\n"
+		got, changed := UpgradeMarker(in)
+		if changed || got != in {
+			t.Errorf("expected no change, got changed=%v content=%q", changed, got)
+		}
+	})
+
+	t.Run("legacy marker as only line (no newline)", func(t *testing.T) {
+		in := "<!-- jt:meta ticket=PROJ-1 fetched=2026-02-17T10:30:00Z -->"
+		got, changed := UpgradeMarker(in)
+		if !changed {
+			t.Fatal("expected changed=true")
+		}
+		if got != "<!-- atlit:meta ticket=PROJ-1 fetched=2026-02-17T10:30:00Z -->" {
+			t.Errorf("got %q", got)
+		}
+	})
 }

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/erickhilda/jt/internal/bitbucket"
-	"github.com/erickhilda/jt/internal/config"
+	"github.com/erickhilda/atlit/internal/bitbucket"
+	"github.com/erickhilda/atlit/internal/config"
 )
 
 func TestParseBitbucketRemote(t *testing.T) {

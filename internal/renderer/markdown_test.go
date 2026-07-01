@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/erickhilda/jt/internal/jira"
+	"github.com/erickhilda/atlit/internal/jira"
 )
 
 func TestRenderIssueFullFields(t *testing.T) {
@@ -35,7 +35,7 @@ func TestRenderIssueFullFields(t *testing.T) {
 	got := RenderIssue(issue)
 
 	checks := []string{
-		"<!-- jt:meta ticket=PROJ-123",
+		"<!-- atlit:meta ticket=PROJ-123",
 		"# PROJ-123: Implement feature X",
 		"| Status | In Progress |",
 		"| Type | Story |",

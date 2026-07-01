@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/erickhilda/jt/internal/config"
-	"github.com/erickhilda/jt/internal/jira"
-	"github.com/erickhilda/jt/internal/renderer"
-	"github.com/erickhilda/jt/internal/store"
+	"github.com/erickhilda/atlit/internal/config"
+	"github.com/erickhilda/atlit/internal/jira"
+	"github.com/erickhilda/atlit/internal/renderer"
+	"github.com/erickhilda/atlit/internal/store"
 	"github.com/spf13/cobra"
 )
 

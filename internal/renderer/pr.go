@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/erickhilda/jt/internal/bitbucket"
+	"github.com/erickhilda/atlit/internal/bitbucket"
 )
 
 // RenderPullRequest produces a self-contained markdown document for a Bitbucket
@@ -26,7 +26,7 @@ func RenderPullRequest(
 	var b strings.Builder
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	fmt.Fprintf(&b, "<!-- jt:meta pr=%s/%s/%d fetched=%s -->\n", workspace, repo, pr.ID, now)
+	fmt.Fprintf(&b, "<!-- atlit:meta pr=%s/%s/%d fetched=%s -->\n", workspace, repo, pr.ID, now)
 	fmt.Fprintf(&b, "# PR #%d: %s\n\n", pr.ID, pr.Title)
 
 	// Metadata table.

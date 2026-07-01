@@ -7,15 +7,15 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/erickhilda/jt/internal/config"
-	"github.com/erickhilda/jt/internal/jira"
+	"github.com/erickhilda/atlit/internal/config"
+	"github.com/erickhilda/atlit/internal/jira"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Set up jt configuration",
+	Short: "Set up atlit configuration",
 	Long:  "Interactive wizard to configure Jira Cloud connection.",
 	RunE:  runInit,
 }
@@ -94,7 +94,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		Instance:       instance,
 		Email:          email,
 		DefaultProject: strings.ToUpper(strings.TrimSpace(defaultProject)),
-		TicketsDir:     "~/.jt/tickets",
+		TicketsDir:     "~/.atlit/tickets",
 		TokenStorage:   storage,
 		FetchComments:  fetchComments,
 	}
@@ -110,7 +110,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	user, err := client.Myself()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: credential verification failed: %v\n", err)
-		fmt.Fprintln(os.Stderr, "Config was saved. You can fix credentials with 'jt config set' and retry with 'jt auth test'.")
+		fmt.Fprintln(os.Stderr, "Config was saved. You can fix credentials with 'atlit config set' and retry with 'atlit auth test'.")
 		return nil
 	}
 

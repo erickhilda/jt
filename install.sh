@@ -1,12 +1,12 @@
 #!/bin/sh
 set -e
 
-# jt installer
-# Usage: curl -sSfL https://raw.githubusercontent.com/erickhilda/jt/master/install.sh | sh
-#    or: curl -sSfL https://raw.githubusercontent.com/erickhilda/jt/master/install.sh | sh -s -- -d /usr/local/bin
+# atlit installer
+# Usage: curl -sSfL https://raw.githubusercontent.com/erickhilda/atlit/master/install.sh | sh
+#    or: curl -sSfL https://raw.githubusercontent.com/erickhilda/atlit/master/install.sh | sh -s -- -d /usr/local/bin
 
-REPO="erickhilda/jt"
-BINARY="jt"
+REPO="erickhilda/atlit"
+BINARY="atlit"
 INSTALL_DIR="/usr/local/bin"
 
 usage() {
@@ -125,4 +125,4 @@ fi
 
 echo "Successfully installed ${BINARY} to ${INSTALL_DIR}/${BINARY}"
 echo ""
-echo "Run 'jt init' to get started."
+echo "Run 'atlit init' to get started."

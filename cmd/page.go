@@ -7,10 +7,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/erickhilda/jt/internal/config"
-	"github.com/erickhilda/jt/internal/confluence"
-	"github.com/erickhilda/jt/internal/renderer"
-	"github.com/erickhilda/jt/internal/store"
+	"github.com/erickhilda/atlit/internal/config"
+	"github.com/erickhilda/atlit/internal/confluence"
+	"github.com/erickhilda/atlit/internal/renderer"
+	"github.com/erickhilda/atlit/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -25,11 +25,11 @@ var pageCmd = &cobra.Command{
 	Use:   "page <PAGE-ID | URL>",
 	Short: "Fetch a Confluence page and save as markdown",
 	Long: `Fetches a Confluence Cloud page (title, metadata, body) and saves it as local
-markdown for offline reading and LLM context, mirroring 'jt pull' for tickets.
+markdown for offline reading and LLM context, mirroring 'atlit pull' for tickets.
 
 Reference forms:
-  jt page 12345                                                     numeric page ID
-  jt page https://acme.atlassian.net/wiki/spaces/ENG/pages/12345/Title   full page URL
+  atlit page 12345                                                     numeric page ID
+  atlit page https://acme.atlassian.net/wiki/spaces/ENG/pages/12345/Title   full page URL
 
 Uses your existing Jira API token (same Atlassian account) -- no separate auth is
 needed as long as the token has Confluence access (unscoped API tokens do).`,
@@ -191,7 +191,7 @@ func slugify(s string) string {
 func wrapConfluenceError(err error, id string) error {
 	switch {
 	case errors.Is(err, confluence.ErrUnauthorized):
-		return fmt.Errorf("authentication failed: %w (your Jira token may be invalid; re-run 'jt init')", err)
+		return fmt.Errorf("authentication failed: %w (your Jira token may be invalid; re-run 'atlit init')", err)
 	case errors.Is(err, confluence.ErrForbidden):
 		return err
 	case errors.Is(err, confluence.ErrNotFound):

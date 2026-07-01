@@ -199,11 +199,16 @@ func TestShouldFetchComments(t *testing.T) {
 }
 
 func TestPagesDirOrDefault(t *testing.T) {
-	if got := (*Config)(nil).PagesDirOrDefault(); got != "~/.jt/pages" {
-		t.Errorf("nil config: got %q", got)
+	dir := t.TempDir()
+	SetConfigDir(dir)
+	t.Cleanup(ResetConfigDir)
+
+	want := filepath.Join(dir, "pages")
+	if got := (*Config)(nil).PagesDirOrDefault(); got != want {
+		t.Errorf("nil config: got %q, want %q", got, want)
 	}
-	if got := (&Config{}).PagesDirOrDefault(); got != "~/.jt/pages" {
-		t.Errorf("unset: got %q", got)
+	if got := (&Config{}).PagesDirOrDefault(); got != want {
+		t.Errorf("unset: got %q, want %q", got, want)
 	}
 	if got := (&Config{PagesDir: "~/custom"}).PagesDirOrDefault(); got != "~/custom" {
 		t.Errorf("set: got %q", got)

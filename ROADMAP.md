@@ -1,4 +1,4 @@
-# jt — Jira Ticket CLI
+# atlit — Jira Ticket CLI
 
 > A lightweight CLI tool to pull Jira Cloud tickets into local markdown files for offline access and LLM context feeding.
 
@@ -11,9 +11,9 @@ A simple, fast, Go-based CLI (inspired by `gh`, `gcloud`, `bird`) that bridges J
 **Core workflow:**
 
 ```
-jt pull PROJ-123        →  ~/.jt/tickets/PROJ-123.md
-jt pull PROJ-123        →  updates the same file with latest content
-cat ~/.jt/tickets/PROJ-123.md | claude   →  instant context
+atlit pull PROJ-123        →  ~/.atlit/tickets/PROJ-123.md
+atlit pull PROJ-123        →  updates the same file with latest content
+cat ~/.atlit/tickets/PROJ-123.md | claude   →  instant context
 ```
 
 ---
@@ -23,7 +23,7 @@ cat ~/.jt/tickets/PROJ-123.md | claude   →  instant context
 Each ticket becomes a self-contained markdown file:
 
 ```markdown
-<!-- jt:meta ticket=PROJ-123 fetched=2026-02-14T10:30:00Z -->
+<!-- atlit:meta ticket=PROJ-123 fetched=2026-02-14T10:30:00Z -->
 # PROJ-123: Implement OAuth2 flow
 
 | Field       | Value                          |
@@ -85,7 +85,7 @@ Started implementation. Will push a draft PR today.
 
 ### Phase 0 — Project Setup (Day 1) [DONE]
 
-- [x] Initialize Go module (`github.com/erickhilda/jt`)
+- [x] Initialize Go module (`github.com/erickhilda/atlit`)
 - [x] Set up project structure (see Architecture below)
 - [x] Choose CLI framework: **cobra** (industry standard, used by `kubectl`, `gh`, `hugo`)
 - [x] Set up CI with goreleaser for cross-platform binaries
@@ -95,24 +95,24 @@ Started implementation. Will push a draft PR today.
 
 **Goal:** Connect to Jira Cloud securely.
 
-- [x] `jt init` — Interactive setup wizard
+- [x] `atlit init` — Interactive setup wizard
   - Prompt for Jira instance URL (`https://yourcompany.atlassian.net`)
   - Prompt for email + API token (masked input via `x/term`)
   - Prompt for default project key (optional)
-  - Save config to `~/.jt/config.yaml`
+  - Save config to `~/.atlit/config.yaml`
   - Verify credentials via `/rest/api/3/myself`
-- [x] `jt config set <key> <value>` — Update individual settings
-- [x] `jt config show` — Display current config (mask token)
-- [x] Store API token securely (system keyring via `go-keyring`, fallback to `~/.jt/credentials` with 0600 perms)
-- [x] `jt auth test` — Verify credentials work
+- [x] `atlit config set <key> <value>` — Update individual settings
+- [x] `atlit config show` — Display current config (mask token)
+- [x] Store API token securely (system keyring via `go-keyring`, fallback to `~/.atlit/credentials` with 0600 perms)
+- [x] `atlit auth test` — Verify credentials work
 
-**Config file (`~/.jt/config.yaml`):**
+**Config file (`~/.atlit/config.yaml`):**
 
 ```yaml
 instance: https://yourcompany.atlassian.net
 email: you@company.com
 default_project: PROJ
-tickets_dir: ~/.jt/tickets    # configurable
+tickets_dir: ~/.atlit/tickets    # configurable
 token_storage: keyring         # or "file" if keyring unavailable
 ```
 
@@ -120,16 +120,16 @@ token_storage: keyring         # or "file" if keyring unavailable
 
 **Goal:** Fetch tickets and save as local markdown.
 
-- [x] `jt pull <TICKET-KEY>` — Fetch ticket from Jira REST API v3, render to markdown, save to `tickets_dir`
+- [x] `atlit pull <TICKET-KEY>` — Fetch ticket from Jira REST API v3, render to markdown, save to `tickets_dir`
   - Fetches: summary, description, status, assignee, reporter, priority, type, labels, sprint, epic, comments, subtasks, linked issues
   - Converts Jira's ADF (Atlassian Document Format) to markdown
   - Saves as `<TICKET-KEY>.md`
   - If file exists, overwrites with fresh content (preserves any local `## Notes` section — see below)
-- [x] `jt pull <TICKET-KEY> --comments-only` — Only update the comments section
-- [x] `jt pull <TICKET-KEY> --dry-run` — Show diff of what would change
-- [x] `jt view <TICKET-KEY>` — Print local markdown to stdout (for piping)
-- [x] `jt open <TICKET-KEY>` — Open ticket in default browser
-- [x] `jt path <TICKET-KEY>` — Print the file path (useful for scripts: `claude < $(jt path PROJ-123)`)
+- [x] `atlit pull <TICKET-KEY> --comments-only` — Only update the comments section
+- [x] `atlit pull <TICKET-KEY> --dry-run` — Show diff of what would change
+- [x] `atlit view <TICKET-KEY>` — Print local markdown to stdout (for piping)
+- [x] `atlit open <TICKET-KEY>` — Open ticket in default browser
+- [x] `atlit path <TICKET-KEY>` — Print the file path (useful for scripts: `claude < $(atlit path PROJ-123)`)
 - [x] Handle ADF → Markdown conversion:
   - Headings, paragraphs, lists (ordered/unordered)
   - Code blocks (with language)
@@ -139,87 +139,87 @@ token_storage: keyring         # or "file" if keyring unavailable
   - Panels (info/warning/error → blockquotes with prefix)
 
 **Local notes preservation:**
-If the user adds a `## My Notes` section at the bottom of the file, `jt pull` should preserve it across updates. This lets you annotate tickets locally.
+If the user adds a `## My Notes` section at the bottom of the file, `atlit pull` should preserve it across updates. This lets you annotate tickets locally.
 
 ### Phase 3 — Sync & Diff (Days 8–10)
 
 **Goal:** Keep local files fresh with minimal effort.
 
-- [ ] `jt sync` — Re-pull all locally saved tickets that have been updated on Jira since last fetch
+- [ ] `atlit sync` — Re-pull all locally saved tickets that have been updated on Jira since last fetch
   - Uses `updated` field from Jira REST API
   - Only fetches tickets where remote `updated > local fetched` timestamp
-- [ ] `jt sync --project PROJ` — Sync only tickets from a specific project
-- [ ] `jt diff <TICKET-KEY>` — Show what changed since last pull (like `git diff`)
+- [ ] `atlit sync --project PROJ` — Sync only tickets from a specific project
+- [ ] `atlit diff <TICKET-KEY>` — Show what changed since last pull (like `git diff`)
   - Color-coded: new comments in green, status changes highlighted
-- [ ] `jt status` — Overview of all local tickets: how many are stale, recently updated, etc.
+- [ ] `atlit status` — Overview of all local tickets: how many are stale, recently updated, etc.
 
 ### Phase 4 — Search & List (Days 11–13)
 
 **Goal:** Browse and search tickets without leaving the terminal.
 
-- [ ] `jt list` — List locally saved tickets (from filesystem)
+- [ ] `atlit list` — List locally saved tickets (from filesystem)
   - Show: key, title, status, last fetched
   - Flags: `--sort`, `--filter-status`
-- [x] `jt search` — Search Jira and list results as a stdout table (DONE, 2026-06-24)
+- [x] `atlit search` — Search Jira and list results as a stdout table (DONE, 2026-06-24)
   - Preset filters: `--status` (comma -> `status in (...)`), `--assignee` (name/email resolved to an account via user-search), `--mine` (`assignee = currentUser()`), composed with `AND` and scoped to `default_project` (`--project` / `--all-projects` override the scope)
   - `--jql "<raw>"` advanced escape hatch (mutually exclusive with the preset filters); `--limit` caps rows shown
-  - Folds in the planned `jt mine` (now `jt search --mine`)
+  - Folds in the planned `atlit mine` (now `atlit search --mine`)
   - See `docs/I24062026_jt-search.md`
-- [ ] `jt sprint` — Show current sprint board for default project
-- [ ] `jt pull --jql <JQL>` — Bulk pull all tickets matching a query
-  - e.g., `jt pull --jql "sprint = currentSprint() AND assignee = currentUser()"`
+- [ ] `atlit sprint` — Show current sprint board for default project
+- [ ] `atlit pull --jql <JQL>` — Bulk pull all tickets matching a query
+  - e.g., `atlit pull --jql "sprint = currentSprint() AND assignee = currentUser()"`
   - Great for pulling your entire sprint at once
 
 ### Phase 5 — Quality of Life (Days 14–16)
 
 **Goal:** Polish the experience.
 
-- [ ] `jt alias` — Create short aliases for common JQL queries
-  - `jt alias add wip "assignee = currentUser() AND status = 'In Progress'"`
-  - `jt wip` → runs the saved query
+- [ ] `atlit alias` — Create short aliases for common JQL queries
+  - `atlit alias add wip "assignee = currentUser() AND status = 'In Progress'"`
+  - `atlit wip` → runs the saved query
 - [ ] Shell completions (bash, zsh, fish) — auto-complete ticket keys from local files
-- [ ] `jt export <TICKET-KEY> --format json` — Export as JSON (for programmatic use)
-- [ ] `jt clean` — Remove local files for tickets that are Done/Closed
-- [ ] `jt log <TICKET-KEY>` — Show pull history (when was this ticket last fetched?)
+- [ ] `atlit export <TICKET-KEY> --format json` — Export as JSON (for programmatic use)
+- [ ] `atlit clean` — Remove local files for tickets that are Done/Closed
+- [ ] `atlit log <TICKET-KEY>` — Show pull history (when was this ticket last fetched?)
 - [ ] Rich terminal output with color (but plain text when piped — detect TTY)
 - [ ] `--output` flag on all commands: `table`, `json`, `markdown`, `plain`
-- [ ] Man pages / `jt help <command>` with examples
+- [ ] Man pages / `atlit help <command>` with examples
 
 ### Phase 6 — Stretch Goals (Future)
 
-- [ ] `jt watch <TICKET-KEY>` — Poll for changes and notify (desktop notification)
-- [ ] `jt comment <TICKET-KEY> "message"` — Post a comment from CLI
-- [ ] `jt transition <TICKET-KEY> "In Review"` — Change ticket status
-- [ ] Confluence integration: `jt pull --include-confluence` fetches linked Confluence pages
-- [ ] Git integration: `jt pull --from-branch` infers ticket key from current branch name (e.g., `feature/PROJ-123-oauth`)
+- [ ] `atlit watch <TICKET-KEY>` — Poll for changes and notify (desktop notification)
+- [ ] `atlit comment <TICKET-KEY> "message"` — Post a comment from CLI
+- [ ] `atlit transition <TICKET-KEY> "In Review"` — Change ticket status
+- [ ] Confluence integration: `atlit pull --include-confluence` fetches linked Confluence pages
+- [ ] Git integration: `atlit pull --from-branch` infers ticket key from current branch name (e.g., `feature/PROJ-123-oauth`)
 - [ ] MCP server mode: expose as a tool for Claude Desktop / Claude Code
 - [ ] Offline full-text search across all local tickets (using bleve or similar)
 
-### Phase 7 — Bitbucket PR support (`jt pr`) [DONE]
+### Phase 7 — Bitbucket PR support (`atlit pr`) [DONE]
 
 **Goal:** Pull a Bitbucket Cloud PR (diff + comments + metadata) into a local
-markdown file for code-review context, mirroring `jt pull` for tickets.
+markdown file for code-review context, mirroring `atlit pull` for tickets.
 
 Read-only, self-serve via a scoped Bitbucket API token — useful when the official
 Atlassian MCP Bitbucket integration isn't available.
 
 - [x] Milestone 0 — auth spike: validated `email:token` + read scopes against `api.bitbucket.org`
-- [x] Milestone 1 — `internal/bitbucket` client + `jt pr <id>` (git-remote inference), `--no-diff`, My Notes preservation, `~/.jt/prs/<workspace>__<repo>__<id>.md`, Jira-key linking
-- [x] `jt pr list [repo]` — repo-scoped PR table on stdout (`--state` open|merged|declined|all, `--limit`), newest-updated first, Jira-key column; no files written
-- [ ] Deferred (v2): write-back (approve/comment/merge), `jt pr view/open/path`, workspace-wide `jt pr list --workspace` + `--mine`, `--json`, diff path-filtering, Bitbucket Server/DC
+- [x] Milestone 1 — `internal/bitbucket` client + `atlit pr <id>` (git-remote inference), `--no-diff`, My Notes preservation, `~/.atlit/prs/<workspace>__<repo>__<id>.md`, Jira-key linking
+- [x] `atlit pr list [repo]` — repo-scoped PR table on stdout (`--state` open|merged|declined|all, `--limit`), newest-updated first, Jira-key column; no files written
+- [ ] Deferred (v2): write-back (approve/comment/merge), `atlit pr view/open/path`, workspace-wide `atlit pr list --workspace` + `--mine`, `--json`, diff path-filtering, Bitbucket Server/DC
 
-### Phase 8 — Confluence page support (`jt page`) [DONE]
+### Phase 8 — Confluence page support (`atlit page`) [DONE]
 
 **Goal:** Pull a Confluence Cloud page (title + metadata + body) into a local markdown
-file for offline reading and LLM context, mirroring `jt pull` for tickets.
+file for offline reading and LLM context, mirroring `atlit pull` for tickets.
 
 Same Atlassian host and Basic auth as Jira, so it reuses the existing Jira token and
 the ADF-to-markdown converter (`jira.RenderADF`).
 
 - [x] `internal/confluence` client — `GetPage(id)` against `/wiki/api/v2/pages/{id}?body-format=atlas_doc_format`
 - [x] `renderer.RenderPage` — metadata table + `## Content` (ADF body reused via `jira.RenderADF`)
-- [x] `jt page <id | url>` — numeric ID or page URL, reuses the Jira token, `--dry-run`, My Notes preservation, `~/.jt/pages/<space>__<id>__<slug>.md` (`pages_dir`)
-- [ ] Deferred (v2): child-page expansion, page comments, attachments/labels, `jt page view/open/path/list`, CQL search, sync/diff for pages, scoped-token `jt auth confluence`
+- [x] `atlit page <id | url>` — numeric ID or page URL, reuses the Jira token, `--dry-run`, My Notes preservation, `~/.atlit/pages/<space>__<id>__<slug>.md` (`pages_dir`)
+- [ ] Deferred (v2): child-page expansion, page comments, attachments/labels, `atlit page view/open/path/list`, CQL search, sync/diff for pages, scoped-token `atlit auth confluence`
 
 ### Phase 9 — Image / attachment handling (Tier 1) [DONE]
 
@@ -245,12 +245,12 @@ through to `default` and emitted nothing.
 ## Architecture
 
 ```
-jt/
+atlit/
 ├── cmd/                    # CLI commands (cobra)
 │   ├── root.go
 │   ├── init.go             # Interactive setup wizard
-│   ├── auth.go             # jt auth test
-│   ├── config.go           # jt config show/set
+│   ├── auth.go             # atlit auth test
+│   ├── config.go           # atlit config show/set
 │   ├── pull.go             # (Phase 2)
 │   ├── view.go             # (Phase 2)
 │   ├── list.go             # (Phase 3)
@@ -300,15 +300,15 @@ All via Jira Cloud REST API v3 (`/rest/api/3/`):
 
 | Endpoint | Used By |
 |----------|---------|
-| `GET /rest/api/3/issue/{key}` | `jt pull` — full ticket with comments |
+| `GET /rest/api/3/issue/{key}` | `atlit pull` — full ticket with comments |
 | `GET /rest/api/3/issue/{key}?expand=renderedFields,names,changelog` | Extended pull |
 | `GET /rest/api/3/issue/{key}/comment` | Comments (paginated) |
-| `GET /rest/api/3/search/jql?jql=...` | `jt search`, `jt sync` |
-| `GET /rest/api/3/user/search?query=...` | `jt search --assignee` (name -> accountId) |
-| `GET /rest/api/3/myself` | `jt auth test` |
+| `GET /rest/api/3/search/jql?jql=...` | `atlit search`, `atlit sync` |
+| `GET /rest/api/3/user/search?query=...` | `atlit search --assignee` (name -> accountId) |
+| `GET /rest/api/3/myself` | `atlit auth test` |
 | `GET /rest/api/3/project/{key}` | Project info |
-| `POST /rest/api/3/issue/{key}/comment` | `jt comment` (Phase 6) |
-| `POST /rest/api/3/issue/{key}/transitions` | `jt transition` (Phase 6) |
+| `POST /rest/api/3/issue/{key}/comment` | `atlit comment` (Phase 6) |
+| `POST /rest/api/3/issue/{key}/transitions` | `atlit transition` (Phase 6) |
 
 **Auth:** Basic auth with email + API token (Base64 encoded in `Authorization` header).
 
@@ -318,13 +318,13 @@ All via Jira Cloud REST API v3 (`/rest/api/3/`):
 
 ```bash
 # Homebrew (macOS/Linux)
-brew install <you>/tap/jt
+brew install <you>/tap/atlit
 
 # Go install
-go install github.com/<you>/jt@latest
+go install github.com/<you>/atlit@latest
 
 # Binary download (goreleaser)
-curl -sSL https://github.com/<you>/jt/releases/latest/download/jt_$(uname -s)_$(uname -m).tar.gz | tar xz
+curl -sSL https://github.com/<you>/atlit/releases/latest/download/atlit_$(uname -s)_$(uname -m).tar.gz | tar xz
 ```
 
 ---
@@ -346,6 +346,6 @@ curl -sSL https://github.com/<you>/jt/releases/latest/download/jt_$(uname -s)_$(
 
 ## Success Criteria
 
-- **MVP:** `jt init` + `jt pull PROJ-123` + `jt view PROJ-123` works end-to-end
+- **MVP:** `atlit init` + `atlit pull PROJ-123` + `atlit view PROJ-123` works end-to-end
 - **v1.0:** Can replace the browser-based Jira workflow for daily ticket reading
 - **Stretch:** Claude can access ticket context without any manual copy-paste

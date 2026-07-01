@@ -1,6 +1,6 @@
 package confluence
 
-// Page is the subset of the Confluence Cloud v2 page object jt renders.
+// Page is the subset of the Confluence Cloud v2 page object atlit renders.
 type Page struct {
 	ID        string   `json:"id"`
 	Status    string   `json:"status"`

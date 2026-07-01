@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/erickhilda/jt/internal/confluence"
+	"github.com/erickhilda/atlit/internal/confluence"
 )
 
 func TestRenderPage(t *testing.T) {
@@ -23,7 +23,7 @@ func TestRenderPage(t *testing.T) {
 	out := RenderPage(p, "ENG", "https://acme.atlassian.net/wiki/spaces/ENG/pages/12345/Design+Doc", nil)
 
 	for _, want := range []string{
-		"<!-- jt:meta page=12345 ",
+		"<!-- atlit:meta page=12345 ",
 		"# Design Doc",
 		"| Space | ENG |",
 		"| Page ID | 12345 |",

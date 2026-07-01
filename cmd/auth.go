@@ -6,9 +6,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/erickhilda/jt/internal/bitbucket"
-	"github.com/erickhilda/jt/internal/config"
-	"github.com/erickhilda/jt/internal/jira"
+	"github.com/erickhilda/atlit/internal/bitbucket"
+	"github.com/erickhilda/atlit/internal/config"
+	"github.com/erickhilda/atlit/internal/jira"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )

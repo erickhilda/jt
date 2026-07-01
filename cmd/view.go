@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/erickhilda/jt/internal/config"
-	"github.com/erickhilda/jt/internal/store"
+	"github.com/erickhilda/atlit/internal/config"
+	"github.com/erickhilda/atlit/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +31,7 @@ func runView(cmd *cobra.Command, args []string) error {
 
 	content, err := store.Load(cfg.TicketsDir, key)
 	if err != nil {
-		return fmt.Errorf("ticket %s not found locally; run 'jt pull %s' first", key, key)
+		return fmt.Errorf("ticket %s not found locally; run 'atlit pull %s' first", key, key)
 	}
 
 	fmt.Print(content)

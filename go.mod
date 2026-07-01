@@ -1,4 +1,4 @@
-module github.com/erickhilda/jt
+module github.com/erickhilda/atlit
 
 go 1.25.6
 

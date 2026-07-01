@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/erickhilda/jt/internal/config"
+	"github.com/erickhilda/atlit/internal/config"
 	"github.com/spf13/cobra"
 )
 

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/erickhilda/jt/internal/bitbucket"
+	"github.com/erickhilda/atlit/internal/bitbucket"
 )
 
 func samplePR() *bitbucket.PullRequest {
@@ -38,7 +38,7 @@ func TestRenderPullRequest(t *testing.T) {
 		"diff --git a/a.go b/a.go\n+x\n", []bitbucket.Comment{c1, deleted}, "PROJ-1234", "/home/me/.jt/tickets/PROJ-1234.md")
 
 	wantContains := []string{
-		"<!-- jt:meta pr=acme/widget/42 fetched=",
+		"<!-- atlit:meta pr=acme/widget/42 fetched=",
 		"# PR #42: Fix bug",
 		"| State | OPEN |",
 		"| Branch | feature/PROJ-1234_x -> develop |",

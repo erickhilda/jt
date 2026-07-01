@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/erickhilda/jt/internal/config"
-	"github.com/erickhilda/jt/internal/jira"
-	"github.com/erickhilda/jt/internal/renderer"
-	"github.com/erickhilda/jt/internal/store"
+	"github.com/erickhilda/atlit/internal/config"
+	"github.com/erickhilda/atlit/internal/jira"
+	"github.com/erickhilda/atlit/internal/renderer"
+	"github.com/erickhilda/atlit/internal/store"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -40,7 +40,7 @@ func runDiff(cmd *cobra.Command, args []string) error {
 	// Load local file.
 	localContent, err := store.Load(cfg.TicketsDir, ticketKey)
 	if err != nil {
-		return fmt.Errorf("ticket %s not found locally; run 'jt pull %s' first", ticketKey, ticketKey)
+		return fmt.Errorf("ticket %s not found locally; run 'atlit pull %s' first", ticketKey, ticketKey)
 	}
 
 	// Fetch fresh from Jira.

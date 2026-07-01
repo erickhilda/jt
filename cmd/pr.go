@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/erickhilda/jt/internal/bitbucket"
-	"github.com/erickhilda/jt/internal/config"
-	"github.com/erickhilda/jt/internal/renderer"
-	"github.com/erickhilda/jt/internal/store"
+	"github.com/erickhilda/atlit/internal/bitbucket"
+	"github.com/erickhilda/atlit/internal/config"
+	"github.com/erickhilda/atlit/internal/renderer"
+	"github.com/erickhilda/atlit/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -30,9 +30,9 @@ var prCmd = &cobra.Command{
 as local markdown for code-review context.
 
 Reference forms:
-  jt pr 4521                       infer workspace/repo from the git remote (run inside the repo)
-  jt pr widget/4521                repo explicit, workspace from config (bitbucket_workspace)
-  jt pr acme/widget/4521           fully explicit`,
+  atlit pr 4521                       infer workspace/repo from the git remote (run inside the repo)
+  atlit pr widget/4521                repo explicit, workspace from config (bitbucket_workspace)
+  atlit pr acme/widget/4521           fully explicit`,
 	Args: cobra.ExactArgs(1),
 	RunE: runPR,
 }
@@ -41,13 +41,13 @@ var prListCmd = &cobra.Command{
 	Use:   "list [repo | workspace/repo]",
 	Short: "List a repository's pull requests",
 	Long: `Lists a Bitbucket Cloud repository's pull requests as a table on stdout (open
-by default, newest-updated first). Nothing is written to disk; run 'jt pr <id>'
+by default, newest-updated first). Nothing is written to disk; run 'atlit pr <id>'
 to fetch a chosen PR's diff and comments.
 
 Repo reference forms:
-  jt pr list                 infer workspace/repo from the git remote (run inside the repo)
-  jt pr list widget          repo explicit, workspace from config (bitbucket_workspace)
-  jt pr list acme/widget     fully explicit`,
+  atlit pr list                 infer workspace/repo from the git remote (run inside the repo)
+  atlit pr list widget          repo explicit, workspace from config (bitbucket_workspace)
+  atlit pr list acme/widget     fully explicit`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runPRList,
 }
@@ -88,7 +88,7 @@ func runPRList(cmd *cobra.Command, args []string) error {
 
 	token, err := config.GetBitbucketToken(cfg)
 	if err != nil {
-		return fmt.Errorf("retrieving Bitbucket token (run 'jt auth bitbucket'): %w", err)
+		return fmt.Errorf("retrieving Bitbucket token (run 'atlit auth bitbucket'): %w", err)
 	}
 
 	client := bitbucket.NewClient(cfg.Email, token)
@@ -125,7 +125,7 @@ func resolveRepoRef(arg string, cfg *config.Config) (workspace, repo string, err
 	if arg == "" {
 		ws, r, gerr := inferFromGitRemote()
 		if gerr != nil {
-			return "", "", fmt.Errorf("not in a Bitbucket repo (%v); use 'jt pr list <repo>' or 'jt pr list <workspace>/<repo>'", gerr)
+			return "", "", fmt.Errorf("not in a Bitbucket repo (%v); use 'atlit pr list <repo>' or 'atlit pr list <workspace>/<repo>'", gerr)
 		}
 		return ws, r, nil
 	}
@@ -214,7 +214,7 @@ func formatPRUpdated(now time.Time, updatedOn string) string {
 func wrapBBListError(err error, workspace, repo string) error {
 	switch {
 	case errors.Is(err, bitbucket.ErrUnauthorized):
-		return fmt.Errorf("authentication failed: %w (re-run 'jt auth bitbucket')", err)
+		return fmt.Errorf("authentication failed: %w (re-run 'atlit auth bitbucket')", err)
 	case errors.Is(err, bitbucket.ErrForbidden):
 		return err
 	case errors.Is(err, bitbucket.ErrNotFound):
@@ -240,7 +240,7 @@ func runPR(cmd *cobra.Command, args []string) error {
 
 	token, err := config.GetBitbucketToken(cfg)
 	if err != nil {
-		return fmt.Errorf("retrieving Bitbucket token (run 'jt auth bitbucket'): %w", err)
+		return fmt.Errorf("retrieving Bitbucket token (run 'atlit auth bitbucket'): %w", err)
 	}
 
 	client := bitbucket.NewClient(cfg.Email, token)
@@ -323,7 +323,7 @@ func resolvePRRef(arg string, cfg *config.Config) (workspace, repo string, id in
 		}
 		ws, r, gerr := inferFromGitRemote()
 		if gerr != nil {
-			return "", "", 0, fmt.Errorf("not in a Bitbucket repo (%v); use 'jt pr <repo>/%d' or 'jt pr <workspace>/<repo>/%d'", gerr, id, id)
+			return "", "", 0, fmt.Errorf("not in a Bitbucket repo (%v); use 'atlit pr <repo>/%d' or 'atlit pr <workspace>/<repo>/%d'", gerr, id, id)
 		}
 		workspace, repo = ws, r
 	default:
@@ -406,7 +406,7 @@ func prFileKey(workspace, repo string, id int) string {
 func wrapBBError(err error, workspace, repo string, id int) error {
 	switch {
 	case errors.Is(err, bitbucket.ErrUnauthorized):
-		return fmt.Errorf("authentication failed: %w (re-run 'jt auth bitbucket')", err)
+		return fmt.Errorf("authentication failed: %w (re-run 'atlit auth bitbucket')", err)
 	case errors.Is(err, bitbucket.ErrForbidden):
 		return err
 	case errors.Is(err, bitbucket.ErrNotFound):

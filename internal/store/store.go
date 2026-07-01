@@ -9,6 +9,29 @@ import (
 	"time"
 )
 
+const (
+	// markerPrefix is the current first-line metadata comment prefix.
+	markerPrefix = "<!-- atlit:meta "
+	// markerLegacyPrefix is the pre-rename prefix, still parsed (and upgraded
+	// by `atlit migrate`) for backward compatibility.
+	markerLegacyPrefix = "<!-- jt:meta "
+)
+
+// UpgradeMarker rewrites a legacy "jt:meta" first-line marker to the current
+// "atlit:meta" marker. It returns the (possibly unchanged) content and whether
+// a rewrite occurred. Content whose first line is not a legacy marker — already
+// upgraded, or no marker at all — is returned unchanged.
+func UpgradeMarker(content string) (string, bool) {
+	line, rest := content, ""
+	if idx := strings.IndexByte(content, '\n'); idx >= 0 {
+		line, rest = content[:idx], content[idx:]
+	}
+	if !strings.HasPrefix(line, markerLegacyPrefix) {
+		return content, false
+	}
+	return markerPrefix + line[len(markerLegacyPrefix):] + rest, true
+}
+
 // Save writes ticket content to <ticketsDir>/<key>.md, creating the
 // directory if it doesn't exist.
 func Save(ticketsDir, key, content string) error {
@@ -149,7 +172,7 @@ func findNextH2(text string) int {
 	return -1
 }
 
-// TicketMeta holds metadata parsed from the jt:meta comment in a ticket file.
+// TicketMeta holds metadata parsed from the atlit:meta comment in a ticket file.
 type TicketMeta struct {
 	Ticket  string
 	Fetched time.Time
@@ -162,16 +185,27 @@ type TicketInfo struct {
 	Path    string
 }
 
-// ParseMeta extracts the jt:meta comment from the first line of content.
+// ParseMeta extracts the atlit:meta (or legacy jt:meta) comment from the first
+// line of content.
 // Returns nil if the line is missing or malformed.
 func ParseMeta(content string) *TicketMeta {
 	line := content
 	if idx := strings.IndexByte(content, '\n'); idx >= 0 {
 		line = content[:idx]
 	}
-	const prefix = "<!-- jt:meta "
+	// Accept the current "atlit:meta" marker and the legacy "jt:meta" marker
+	// (pre-rename files, before `atlit migrate`).
 	const suffix = " -->"
-	if !strings.HasPrefix(line, prefix) || !strings.HasSuffix(line, suffix) {
+	var prefix string
+	switch {
+	case strings.HasPrefix(line, markerPrefix):
+		prefix = markerPrefix
+	case strings.HasPrefix(line, markerLegacyPrefix):
+		prefix = markerLegacyPrefix
+	default:
+		return nil
+	}
+	if !strings.HasSuffix(line, suffix) {
 		return nil
 	}
 	body := line[len(prefix) : len(line)-len(suffix)]

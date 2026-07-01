@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/erickhilda/jt/internal/config"
-	"github.com/erickhilda/jt/internal/jira"
+	"github.com/erickhilda/atlit/internal/config"
+	"github.com/erickhilda/atlit/internal/jira"
 	"github.com/spf13/cobra"
 )
 
@@ -19,19 +19,19 @@ var searchCmd = &cobra.Command{
 	Use:   "search",
 	Short: "Search Jira tickets with preset filters or raw JQL",
 	Long: `Searches Jira and lists matching tickets as a table on stdout. Nothing is
-written to disk; run 'jt pull <KEY>' to fetch a chosen ticket.
+written to disk; run 'atlit pull <KEY>' to fetch a chosen ticket.
 
 Preset filters (composed with AND, scoped to default_project unless overridden):
-  jt search --status "code review"
-  jt search --status "code review,stage test"   # comma -> status in (...)
-  jt search --assignee alice                      # name/email resolved to an account
-  jt search --mine                                # assignee = currentUser()
-  jt search --mine --active                       # exclude done-category statuses
-  jt search --status "stage test" --project FOO   # override the project scope
-  jt search --mine --all-projects                 # drop the project scope
+  atlit search --status "code review"
+  atlit search --status "code review,stage test"   # comma -> status in (...)
+  atlit search --assignee alice                      # name/email resolved to an account
+  atlit search --mine                                # assignee = currentUser()
+  atlit search --mine --active                       # exclude done-category statuses
+  atlit search --status "stage test" --project FOO   # override the project scope
+  atlit search --mine --all-projects                 # drop the project scope
 
 Advanced (raw JQL escape hatch; cannot be combined with preset filters):
-  jt search --jql "project = FOO AND sprint in openSprints() ORDER BY updated DESC"`,
+  atlit search --jql "project = FOO AND sprint in openSprints() ORDER BY updated DESC"`,
 	Args: cobra.NoArgs,
 	RunE: runSearch,
 }
@@ -275,9 +275,9 @@ func printSearchResults(jql string, issues []jira.Issue, limit int) {
 	}
 
 	if limit > 0 && len(issues) >= limit {
-		fmt.Printf("\nShowing first %d (raise --limit for more). Run 'jt pull <KEY>' to fetch one.\n", limit)
+		fmt.Printf("\nShowing first %d (raise --limit for more). Run 'atlit pull <KEY>' to fetch one.\n", limit)
 	} else {
-		fmt.Printf("\n%d ticket(s). Run 'jt pull <KEY>' to fetch one.\n", len(issues))
+		fmt.Printf("\n%d ticket(s). Run 'atlit pull <KEY>' to fetch one.\n", len(issues))
 	}
 }
 

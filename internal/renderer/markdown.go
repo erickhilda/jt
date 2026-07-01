@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/erickhilda/jt/internal/jira"
+	"github.com/erickhilda/atlit/internal/jira"
 )
 
 // RenderIssue produces a self-contained markdown document for a Jira issue.
@@ -15,7 +15,7 @@ func RenderIssue(issue *jira.Issue) string {
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	// Meta comment.
-	fmt.Fprintf(&b, "<!-- jt:meta ticket=%s fetched=%s -->\n", issue.Key, now)
+	fmt.Fprintf(&b, "<!-- atlit:meta ticket=%s fetched=%s -->\n", issue.Key, now)
 
 	// Title.
 	fmt.Fprintf(&b, "# %s: %s\n\n", issue.Key, issue.Fields.Summary)

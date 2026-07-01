@@ -1,6 +1,6 @@
 package bitbucket
 
-// PullRequest is the subset of the Bitbucket Cloud PR object jt renders.
+// PullRequest is the subset of the Bitbucket Cloud PR object atlit renders.
 type PullRequest struct {
 	ID          int        `json:"id"`
 	Title       string     `json:"title"`

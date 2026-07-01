@@ -111,7 +111,7 @@ func (c *Client) GetPullRequestComments(workspace, repo string, id int) ([]Comme
 // following pagination up to limit results. states filters by PR state
 // ("OPEN"/"MERGED"/"DECLINED"/"SUPERSEDED"); an empty slice returns all states.
 // A limit <= 0 means no cap. Each list entry is an abbreviated PR object, but it
-// carries every field jt's table needs, so no per-PR follow-up call is made.
+// carries every field atlit's table needs, so no per-PR follow-up call is made.
 func (c *Client) ListPullRequests(workspace, repo string, states []string, limit int) ([]PullRequest, error) {
 	q := url.Values{}
 	q.Set("pagelen", "50")

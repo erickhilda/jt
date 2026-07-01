@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/erickhilda/jt/internal/config"
-	"github.com/erickhilda/jt/internal/jira"
-	"github.com/erickhilda/jt/internal/renderer"
-	"github.com/erickhilda/jt/internal/store"
+	"github.com/erickhilda/atlit/internal/config"
+	"github.com/erickhilda/atlit/internal/jira"
+	"github.com/erickhilda/atlit/internal/renderer"
+	"github.com/erickhilda/atlit/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -140,7 +140,7 @@ func issueFieldsFor(fetchComments bool) string {
 func pullCommentsOnly(cfg *config.Config, issue *jira.Issue, key string, dryRun bool) error {
 	existing, err := store.Load(cfg.TicketsDir, key)
 	if err != nil {
-		return fmt.Errorf("no local file for %s; run 'jt pull %s' first", key, key)
+		return fmt.Errorf("no local file for %s; run 'atlit pull %s' first", key, key)
 	}
 
 	newComments := renderer.RenderComments(issue)

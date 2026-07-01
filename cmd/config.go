@@ -5,13 +5,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/erickhilda/jt/internal/config"
+	"github.com/erickhilda/atlit/internal/config"
 	"github.com/spf13/cobra"
 )
 
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Manage jt configuration",
+	Short: "Manage atlit configuration",
 }
 
 var configShowCmd = &cobra.Command{
@@ -27,13 +27,13 @@ var configSetCmd = &cobra.Command{
 fetch_pull_requests, token, bitbucket_workspace, prs_dir, bitbucket_token, pages_dir
 
 Examples:
-  jt config set instance https://myorg.atlassian.net
-  jt config set default_project PROJ
-  jt config set fetch_comments false
-  jt config set token <new-api-token>
-  jt config set bitbucket_workspace acme
-  jt config set bitbucket_token <new-bitbucket-api-token>
-  jt config set pages_dir ~/notes/confluence`,
+  atlit config set instance https://myorg.atlassian.net
+  atlit config set default_project PROJ
+  atlit config set fetch_comments false
+  atlit config set token <new-api-token>
+  atlit config set bitbucket_workspace acme
+  atlit config set bitbucket_token <new-bitbucket-api-token>
+  atlit config set pages_dir ~/notes/confluence`,
 	Args: cobra.ExactArgs(2),
 	RunE: runConfigSet,
 }

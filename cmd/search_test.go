@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/erickhilda/jt/internal/jira"
+	"github.com/erickhilda/atlit/internal/jira"
 )
 
 func TestValidateSearchFlags(t *testing.T) {

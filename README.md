@@ -1,6 +1,6 @@
-# jt -- Jira Ticket CLI
+# atlit -- Atlassian context CLI
 
-A lightweight CLI to pull Jira Cloud tickets into local markdown files.
+A lightweight CLI that pulls Atlassian content -- Jira tickets, Bitbucket PRs, and Confluence pages -- into local markdown files.
 
 ## Features
 
@@ -19,24 +19,24 @@ A lightweight CLI to pull Jira Cloud tickets into local markdown files.
 ### Shell installer (macOS/Linux)
 
 ```bash
-curl -sSfL https://raw.githubusercontent.com/erickhilda/jt/master/install.sh | sh
+curl -sSfL https://raw.githubusercontent.com/erickhilda/atlit/master/install.sh | sh
 ```
 
 To install to a custom directory or pin a version:
 
 ```bash
-curl -sSfL https://raw.githubusercontent.com/erickhilda/jt/master/install.sh | sh -s -- -d ~/.local/bin -v v0.1.0
+curl -sSfL https://raw.githubusercontent.com/erickhilda/atlit/master/install.sh | sh -s -- -d ~/.local/bin -v v0.1.0
 ```
 
 ### Binary download
 
-Download a prebuilt binary from the [GitHub Releases](https://github.com/erickhilda/jt/releases) page.
+Download a prebuilt binary from the [GitHub Releases](https://github.com/erickhilda/atlit/releases) page.
 
 ### From source
 
 ```bash
-git clone https://github.com/erickhilda/jt.git
-cd jt
+git clone https://github.com/erickhilda/atlit.git
+cd atlit
 make install
 ```
 
@@ -46,66 +46,66 @@ Requires Go 1.25+.
 
 ```bash
 # 1. Configure your Jira instance, email, and API token
-jt init
+atlit init
 
 # 2. Pull a ticket to local markdown
-jt pull PROJ-123
+atlit pull PROJ-123
 
 # 3. View it
-jt view PROJ-123
+atlit view PROJ-123
 
 # 4. Open in browser
-jt open PROJ-123
+atlit open PROJ-123
 ```
 
 ## Creating a Jira API Token
 
-jt authenticates using Jira Cloud API tokens (not your account password). To create one:
+atlit authenticates using Jira Cloud API tokens (not your account password). To create one:
 
 1. Log in to <https://id.atlassian.com/manage-profile/security/api-tokens>
 2. Click **Create API token**
-3. Give it a label (e.g. "jt CLI") and click **Create**
+3. Give it a label (e.g. "atlit CLI") and click **Create**
 4. Copy the token -- you won't be able to see it again
 
-Paste the token when `jt init` prompts for it. The token inherits the permissions of your Atlassian account.
+Paste the token when `atlit init` prompts for it. The token inherits the permissions of your Atlassian account.
 
-If you need to rotate a token later, create a new one in the same page and update jt:
+If you need to rotate a token later, create a new one in the same page and update atlit:
 
 ```bash
-jt config set token <new-token>
+atlit config set token <new-token>
 ```
 
 ## Commands
 
-### `jt init`
+### `atlit init`
 
 Interactive setup wizard. Prompts for your Jira instance URL, email, API token, and default project key. Tests credentials before saving.
 
-### `jt auth test`
+### `atlit auth test`
 
 Verify stored credentials against the Jira API. Prints your display name, email, account ID, and timezone on success.
 
-### `jt auth bitbucket`
+### `atlit auth bitbucket`
 
 Set (and verify) a Bitbucket Cloud API token, stored separately from the Jira token. Create the token at <https://id.atlassian.com/manage-profile/security/api-tokens> with scopes `read:pullrequest:bitbucket` and `read:repository:bitbucket`. If `bitbucket_workspace` is configured, the token is verified against it.
 
-### `jt config show`
+### `atlit config show`
 
 Display all configuration settings (token is masked).
 
-### `jt config set <key> <value>`
+### `atlit config set <key> <value>`
 
 Update a single configuration value.
 
 Valid keys: `instance`, `email`, `default_project`, `tickets_dir`, `fetch_comments`, `fetch_pull_requests`, `token`, `bitbucket_workspace`, `prs_dir`, `bitbucket_token`.
 
 ```bash
-jt config set instance https://myorg.atlassian.net
-jt config set default_project PROJ
-jt config set fetch_comments false
+atlit config set instance https://myorg.atlassian.net
+atlit config set default_project PROJ
+atlit config set fetch_comments false
 ```
 
-### `jt pull <TICKET-KEY>`
+### `atlit pull <TICKET-KEY>`
 
 Fetch a Jira ticket and save it as local markdown.
 
@@ -116,40 +116,40 @@ Fetch a Jira ticket and save it as local markdown.
 
 The pull command preserves any content you've written under the `## My Notes` section.
 
-### `jt view <TICKET-KEY>`
+### `atlit view <TICKET-KEY>`
 
 Print the local ticket markdown to stdout. Useful for piping:
 
 ```bash
-jt view PROJ-123 | less
+atlit view PROJ-123 | less
 ```
 
-### `jt open <TICKET-KEY>`
+### `atlit open <TICKET-KEY>`
 
 Open the ticket in your default browser.
 
-### `jt path <TICKET-KEY>`
+### `atlit path <TICKET-KEY>`
 
 Print the absolute filesystem path to a ticket's markdown file. Useful for scripting:
 
 ```bash
-cat "$(jt path PROJ-123)"
+cat "$(atlit path PROJ-123)"
 ```
 
-### `jt search`
+### `atlit search`
 
-Search Jira and list matching tickets as a table on stdout (newest-updated first). Nothing is written to disk — use it to find a ticket, then run `jt pull <KEY>` to fetch it.
+Search Jira and list matching tickets as a table on stdout (newest-updated first). Nothing is written to disk — use it to find a ticket, then run `atlit pull <KEY>` to fetch it.
 
 Preset filters are composed with `AND` and scoped to `default_project` unless you override the scope. At least one filter is required.
 
 ```bash
-jt search --status "code review"                 # one status
-jt search --status "code review,stage test"      # comma-separated -> status in (...)
-jt search --assignee alice                        # name/email resolved to a Jira account
-jt search --mine                                  # assignee = currentUser()
-jt search --mine --active                          # exclude done-category statuses
-jt search --status "stage test" --project FOO     # override the project scope
-jt search --mine --all-projects                   # drop the project scope
+atlit search --status "code review"                 # one status
+atlit search --status "code review,stage test"      # comma-separated -> status in (...)
+atlit search --assignee alice                        # name/email resolved to a Jira account
+atlit search --mine                                  # assignee = currentUser()
+atlit search --mine --active                          # exclude done-category statuses
+atlit search --status "stage test" --project FOO     # override the project scope
+atlit search --mine --all-projects                   # drop the project scope
 ```
 
 `--assignee` resolves a human-friendly name or email to a Jira account via the user-search API; if it matches no one (or several people) it errors and lists the candidates so you can refine. Use `--mine` for yourself (no lookup needed).
@@ -157,7 +157,7 @@ jt search --mine --all-projects                   # drop the project scope
 For anything the presets can't express, `--jql` takes a raw query. It is a standalone escape hatch and cannot be combined with the preset/scope flags:
 
 ```bash
-jt search --jql "project = FOO AND sprint in openSprints() ORDER BY updated DESC"
+atlit search --jql "project = FOO AND sprint in openSprints() ORDER BY updated DESC"
 ```
 
 | Flag | Description |
@@ -173,16 +173,16 @@ jt search --jql "project = FOO AND sprint in openSprints() ORDER BY updated DESC
 
 The effective JQL is printed above the table for transparency. The table shows the key, summary, status, assignee, and a relative "updated" age.
 
-### `jt pr <PR-REF>`
+### `atlit pr <PR-REF>`
 
-Fetch a Bitbucket Cloud pull request (metadata, diff, comments) and save it as local markdown for code-review context. Requires a Bitbucket token (`jt auth bitbucket`).
+Fetch a Bitbucket Cloud pull request (metadata, diff, comments) and save it as local markdown for code-review context. Requires a Bitbucket token (`atlit auth bitbucket`).
 
 Reference forms:
 
 ```bash
-jt pr 4521                    # infer workspace/repo from the git remote (run inside the repo)
-jt pr widget/4521             # repo explicit, workspace from `bitbucket_workspace`
-jt pr acme/widget/4521        # fully explicit
+atlit pr 4521                    # infer workspace/repo from the git remote (run inside the repo)
+atlit pr widget/4521             # repo explicit, workspace from `bitbucket_workspace`
+atlit pr acme/widget/4521        # fully explicit
 ```
 
 | Flag | Description |
@@ -190,20 +190,20 @@ jt pr acme/widget/4521        # fully explicit
 | `--no-diff` | Omit the unified diff (keep diffstat + comments) — useful for very large PRs |
 | `--dry-run` | Show a diff of what would change without saving |
 
-PRs are saved to `prs_dir` (default `~/.jt/prs`) as `<workspace>__<repo>__<id>.md`. A `## My Notes` section is preserved across re-fetches, and if the PR's branch/title contains a Jira key (e.g. `PROJ-1234`) it is linked — with a pointer to the local ticket file when one exists.
+PRs are saved to `prs_dir` (default `~/.atlit/prs`) as `<workspace>__<repo>__<id>.md`. A `## My Notes` section is preserved across re-fetches, and if the PR's branch/title contains a Jira key (e.g. `PROJ-1234`) it is linked — with a pointer to the local ticket file when one exists.
 
-The full unified diff is embedded by default; on a large diff `jt pr` prints a warning (it never silently truncates) so you can re-run with `--no-diff`.
+The full unified diff is embedded by default; on a large diff `atlit pr` prints a warning (it never silently truncates) so you can re-run with `--no-diff`.
 
-### `jt pr list [REPO-REF]`
+### `atlit pr list [REPO-REF]`
 
-List a repository's pull requests as a table on stdout (open by default, newest-updated first). Nothing is written to disk — use it to find a PR, then run `jt pr <id>` to fetch its diff and comments.
+List a repository's pull requests as a table on stdout (open by default, newest-updated first). Nothing is written to disk — use it to find a PR, then run `atlit pr <id>` to fetch its diff and comments.
 
 Reference forms:
 
 ```bash
-jt pr list                    # infer workspace/repo from the git remote (run inside the repo)
-jt pr list widget             # repo explicit, workspace from `bitbucket_workspace`
-jt pr list acme/widget        # fully explicit
+atlit pr list                    # infer workspace/repo from the git remote (run inside the repo)
+atlit pr list widget             # repo explicit, workspace from `bitbucket_workspace`
+atlit pr list acme/widget        # fully explicit
 ```
 
 | Flag | Description |
@@ -213,34 +213,34 @@ jt pr list acme/widget        # fully explicit
 
 The table shows the PR id, title, linked Jira key (from the branch/title, `-` when absent), author, and a relative "updated" age. The `--limit` count caps the rows fetched, so the header count reflects what was shown rather than the repository's full PR total.
 
-### `jt page <PAGE-ID | URL>`
+### `atlit page <PAGE-ID | URL>`
 
-Fetch a Confluence Cloud page (title, metadata, body) and save it as local markdown for offline reading and LLM context. The page body is converted from Atlassian Document Format to markdown using the same converter as `jt pull`.
+Fetch a Confluence Cloud page (title, metadata, body) and save it as local markdown for offline reading and LLM context. The page body is converted from Atlassian Document Format to markdown using the same converter as `atlit pull`.
 
 This reuses your existing Jira API token — Confluence lives on the same Atlassian site (`<instance>/wiki`) and uses the same authentication, so no separate login is needed as long as the token has Confluence access (unscoped API tokens do; a scoped token needs a Confluence read scope).
 
 Reference forms:
 
 ```bash
-jt page 12345                                                       # numeric page ID
-jt page https://acme.atlassian.net/wiki/spaces/ENG/pages/12345/Title   # full page URL
+atlit page 12345                                                       # numeric page ID
+atlit page https://acme.atlassian.net/wiki/spaces/ENG/pages/12345/Title   # full page URL
 ```
 
 | Flag | Description |
 |------|-------------|
 | `--dry-run` | Show a diff of what would change without saving |
 
-Pages are saved to `pages_dir` (default `~/.jt/pages`) as `<space>__<id>__<slug>.md`. A `## My Notes` section is preserved across re-fetches.
+Pages are saved to `pages_dir` (default `~/.atlit/pages`) as `<space>__<id>__<slug>.md`. A `## My Notes` section is preserved across re-fetches.
 
 ## Configuration
 
-Configuration is stored in `~/.jt/config.yaml`:
+Configuration is stored in `~/.atlit/config.yaml`:
 
 ```yaml
 instance: https://yourcompany.atlassian.net
 email: you@company.com
 default_project: PROJ
-tickets_dir: ~/.jt/tickets
+tickets_dir: ~/.atlit/tickets
 token_storage: keyring
 fetch_comments: true
 ```
@@ -250,22 +250,22 @@ fetch_comments: true
 | `instance` | Jira Cloud base URL (must start with `https://`) |
 | `email` | Jira account email |
 | `default_project` | Default project key (optional) |
-| `tickets_dir` | Directory for saved tickets (default: `~/.jt/tickets`) |
-| `token_storage` | `keyring` (system keyring) or `file` (`~/.jt/credentials`, 0600) |
-| `fetch_comments` | Fetch and render the Comments section. Default `true`. Set `false` to skip comments on `pull`, `diff`, and `sync` (smaller payloads; existing `## Comments` blocks in local files are preserved). `jt pull --comments-only` overrides this and always refreshes comments. |
+| `tickets_dir` | Directory for saved tickets (default: `~/.atlit/tickets`) |
+| `token_storage` | `keyring` (system keyring) or `file` (`~/.atlit/credentials`, 0600) |
+| `fetch_comments` | Fetch and render the Comments section. Default `true`. Set `false` to skip comments on `pull`, `diff`, and `sync` (smaller payloads; existing `## Comments` blocks in local files are preserved). `atlit pull --comments-only` overrides this and always refreshes comments. |
 | `fetch_pull_requests` | Fetch and render the development panel's linked pull requests (a `## Pull Requests` section) on `pull` and `sync`. Default `true`. Uses Jira's dev-status API, so PRs only appear when Jira is connected to your Git host (Bitbucket/GitHub) and the branch/commit/PR references the issue key. Failures are non-fatal: `pull` warns and keeps any existing `## Pull Requests` block. Set `false` to skip the lookup. |
-| `bitbucket_workspace` | Default Bitbucket workspace for `jt pr <repo>/<id>` references |
-| `prs_dir` | Directory for saved pull requests (default: `~/.jt/prs`) |
-| `pages_dir` | Directory for saved Confluence pages (default: `~/.jt/pages`) |
+| `bitbucket_workspace` | Default Bitbucket workspace for `atlit pr <repo>/<id>` references |
+| `prs_dir` | Directory for saved pull requests (default: `~/.atlit/prs`) |
+| `pages_dir` | Directory for saved Confluence pages (default: `~/.atlit/pages`) |
 
 API tokens are stored in your system keyring when available, with an automatic fallback to an encrypted credentials file.
 
 ## Local File Format
 
-Pulled tickets are saved as `~/.jt/tickets/<KEY>.md`:
+Pulled tickets are saved as `~/.atlit/tickets/<KEY>.md`:
 
 ```markdown
-<!-- jt:meta ticket=PROJ-123 fetched=2026-02-14T10:30:00Z -->
+<!-- atlit:meta ticket=PROJ-123 fetched=2026-02-14T10:30:00Z -->
 # PROJ-123: Implement OAuth2 flow
 
 | Field       | Value              |

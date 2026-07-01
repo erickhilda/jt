@@ -9,8 +9,11 @@ import (
 )
 
 const (
-	keyringService = "jt-cli"
-	credFileName   = "credentials"
+	keyringService = "atlit-cli"
+	// legacyKeyringService is the pre-rename service name. Tokens are still read
+	// from it (and migrated from it) for backward compatibility. See `atlit migrate`.
+	legacyKeyringService = "jt-cli"
+	credFileName         = "credentials"
 	// bitbucketKeyringSuffix namespaces the Bitbucket token under a second
 	// keyring account so it sits beside the Jira token without colliding.
 	bitbucketKeyringSuffix = "#bitbucket"
@@ -18,6 +21,47 @@ const (
 	// kept separate from the Jira credentials file to avoid format changes.
 	bitbucketCredFileName = "credentials-bitbucket"
 )
+
+// MigrateKeyringTokens copies the Jira and Bitbucket tokens from the legacy
+// jt-cli keyring service to the current atlit-cli service, deleting the legacy
+// entries afterward. It returns labels of the accounts migrated; missing
+// entries are skipped (so re-running is a no-op). When dryRun is true it only
+// reports what would migrate without touching the keyring.
+func MigrateKeyringTokens(email string, dryRun bool) ([]string, error) {
+	accounts := []struct{ label, account string }{
+		{"jira", email},
+		{"bitbucket", email + bitbucketKeyringSuffix},
+	}
+	var migrated []string
+	for _, a := range accounts {
+		token, err := keyring.Get(legacyKeyringService, a.account)
+		if err != nil {
+			continue // nothing under the legacy service for this account
+		}
+		migrated = append(migrated, a.label)
+		if dryRun {
+			continue
+		}
+		if err := keyring.Set(keyringService, a.account, token); err != nil {
+			return migrated, fmt.Errorf("copying %s token to %s: %w", a.label, keyringService, err)
+		}
+		_ = keyring.Delete(legacyKeyringService, a.account)
+	}
+	return migrated, nil
+}
+
+// keyringGet reads an account from the current keyring service, falling back to
+// the legacy jt-cli service when the new service has no entry (pre-migration).
+func keyringGet(account string) (string, error) {
+	token, err := keyring.Get(keyringService, account)
+	if err == nil {
+		return token, nil
+	}
+	if legacy, lerr := keyring.Get(legacyKeyringService, account); lerr == nil {
+		return legacy, nil
+	}
+	return "", err
+}
 
 // SetToken stores the API token. It tries the system keyring first;
 // if unavailable, it falls back to a file. Returns which storage was used.
@@ -34,7 +78,7 @@ func SetToken(email, token string) (TokenStorage, error) {
 func GetToken(cfg *Config) (string, error) {
 	switch cfg.TokenStorage {
 	case TokenStorageKeyring:
-		token, err := keyring.Get(keyringService, cfg.Email)
+		token, err := keyringGet(cfg.Email)
 		if err != nil {
 			return "", fmt.Errorf("reading token from keyring: %w", err)
 		}
@@ -74,7 +118,7 @@ func SetBitbucketToken(email, token string) (TokenStorage, error) {
 func GetBitbucketToken(cfg *Config) (string, error) {
 	switch cfg.TokenStorage {
 	case TokenStorageKeyring:
-		token, err := keyring.Get(keyringService, cfg.Email+bitbucketKeyringSuffix)
+		token, err := keyringGet(cfg.Email + bitbucketKeyringSuffix)
 		if err != nil {
 			return "", fmt.Errorf("reading Bitbucket token from keyring: %w", err)
 		}
@@ -112,7 +156,7 @@ func getBitbucketTokenFile() (string, error) {
 // isKeyringAvailable tests whether the system keyring works by doing
 // a set/delete round-trip with a throwaway value.
 func isKeyringAvailable() bool {
-	testKey := "jt-keyring-test"
+	testKey := "atlit-keyring-test"
 	testVal := "test"
 	if err := keyring.Set(keyringService, testKey, testVal); err != nil {
 		return false

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/erickhilda/jt/internal/config"
-	"github.com/erickhilda/jt/internal/jira"
-	"github.com/erickhilda/jt/internal/renderer"
-	"github.com/erickhilda/jt/internal/store"
+	"github.com/erickhilda/atlit/internal/config"
+	"github.com/erickhilda/atlit/internal/jira"
+	"github.com/erickhilda/atlit/internal/renderer"
+	"github.com/erickhilda/atlit/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -48,12 +48,12 @@ func runPush(cmd *cobra.Command, args []string) error {
 
 	localContent, err := store.Load(cfg.TicketsDir, ticketKey)
 	if err != nil {
-		return fmt.Errorf("no local file for %s; run 'jt pull %s' first", ticketKey, ticketKey)
+		return fmt.Errorf("no local file for %s; run 'atlit pull %s' first", ticketKey, ticketKey)
 	}
 
 	meta := store.ParseMeta(localContent)
 	if meta == nil {
-		return fmt.Errorf("local file for %s has no jt:meta header; try 'jt pull %s' to refresh it", ticketKey, ticketKey)
+		return fmt.Errorf("local file for %s has no atlit:meta header; try 'atlit pull %s' to refresh it", ticketKey, ticketKey)
 	}
 
 	token, err := config.GetToken(cfg)
@@ -69,7 +69,7 @@ func runPush(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("ticket %s not found", ticketKey)
 		}
 		if errors.Is(err, jira.ErrUnauthorized) {
-			return fmt.Errorf("authentication failed: check 'jt auth test'")
+			return fmt.Errorf("authentication failed: check 'atlit auth test'")
 		}
 		return fmt.Errorf("fetching remote ticket: %w", err)
 	}
@@ -135,7 +135,7 @@ func runPush(cmd *cobra.Command, args []string) error {
 
 	if err := client.UpdateDescription(ticketKey, updatedDoc); err != nil {
 		if errors.Is(err, jira.ErrUnauthorized) {
-			return fmt.Errorf("authentication failed: check 'jt auth test'")
+			return fmt.Errorf("authentication failed: check 'atlit auth test'")
 		}
 		return fmt.Errorf("updating ticket: %w", err)
 	}
@@ -200,7 +200,7 @@ func checkStale(ticketKey, remoteUpdated string, localFetched time.Time) error {
 	if err != nil {
 		return fmt.Errorf(
 			"could not parse remote update time %q for %s; refusing to push to avoid overwriting remote changes\n"+
-				"Run 'jt pull %s' first, then re-apply your edits",
+				"Run 'atlit pull %s' first, then re-apply your edits",
 			remoteUpdated, ticketKey, ticketKey,
 		)
 	}
@@ -209,7 +209,7 @@ func checkStale(ticketKey, remoteUpdated string, localFetched time.Time) error {
 			"ticket %s was updated on Jira after your last pull\n"+
 				"  remote updated: %s\n"+
 				"  local fetched:  %s\n"+
-				"Run 'jt pull %s' or 'jt sync' first, then re-apply your edits",
+				"Run 'atlit pull %s' or 'atlit sync' first, then re-apply your edits",
 			ticketKey,
 			updated.Format(time.RFC3339),
 			localFetched.Format(time.RFC3339),

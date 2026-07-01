@@ -1,13 +1,13 @@
-BINARY_NAME=jt
+BINARY_NAME=atlit
 VERSION?=dev
 
 .PHONY: build install test lint clean setup
 
 build:
-	go build -ldflags "-X github.com/erickhilda/jt/cmd.version=$(VERSION)" -o $(BINARY_NAME) .
+	go build -ldflags "-X github.com/erickhilda/atlit/cmd.version=$(VERSION)" -o $(BINARY_NAME) .
 
 install:
-	go install -ldflags "-X github.com/erickhilda/jt/cmd.version=$(VERSION)" .
+	go install -ldflags "-X github.com/erickhilda/atlit/cmd.version=$(VERSION)" .
 
 test:
 	go test ./...
